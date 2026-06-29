@@ -2,7 +2,7 @@
 
 A production-style data engineering portfolio project for ingesting, processing, storing, and serving retail business data.
 
-The platform is built incrementally across ten phases. The current milestone includes Phase 1 infrastructure and Phase 2 data producers:
+The platform is built incrementally across ten phases. The current milestone includes Phase 1 infrastructure, Phase 2 data producers, Phase 3 Bronze ingestion, and Phase 4 Silver transformations:
 
 - Apache Kafka in KRaft mode
 - Kafka UI
@@ -11,6 +11,7 @@ The platform is built incrementally across ten phases. The current milestone inc
 - Lakehouse folder structure for Bronze, Silver, and Gold layers
 - Synthetic retail event generators and Kafka producers
 - Spark Streaming Bronze ingestion into Delta Lake
+- Spark Silver transformations into typed Delta tables
 
 ## Architecture
 
@@ -94,6 +95,17 @@ docker compose --profile spark up spark-bronze
 Bronze Delta output is written under `data/bronze/events`.
 See [docs/phase-3-bronze-streaming.md](docs/phase-3-bronze-streaming.md).
 
+## Transform Silver Data
+
+After Bronze data exists, run the Spark Silver transformation job:
+
+```powershell
+docker compose --profile spark up spark-silver
+```
+
+Silver Delta output is written under `data/silver/<topic>`.
+See [docs/phase-4-silver-transformations.md](docs/phase-4-silver-transformations.md).
+
 ## Repository Layout
 
 ```text
@@ -121,6 +133,7 @@ make ps       # Show service status
 make logs     # Follow logs
 make down     # Stop services
 make bronze   # Run Spark Streaming to Bronze Delta
+make silver   # Run Spark transformations to Silver Delta
 ```
 
 ## Validation

@@ -52,6 +52,18 @@ Inspect Bronze files:
 Get-ChildItem -Recurse data/bronze/events
 ```
 
+Run Silver transformations:
+
+```powershell
+docker compose --profile spark up spark-silver
+```
+
+Inspect Silver files:
+
+```powershell
+Get-ChildItem -Recurse data/silver
+```
+
 ## Stop
 
 ```powershell

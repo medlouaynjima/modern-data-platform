@@ -1,4 +1,4 @@
-.PHONY: up down ps logs config lint test produce dry-run bronze
+.PHONY: up down ps logs config lint test produce dry-run bronze silver
 
 up:
 	docker compose up -d
@@ -29,3 +29,6 @@ produce:
 
 bronze:
 	docker compose --profile spark up spark-bronze
+
+silver:
+	docker compose --profile spark up spark-silver
