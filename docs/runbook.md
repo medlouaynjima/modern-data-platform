@@ -28,6 +28,18 @@ MinIO bucket:
 docker compose run --rm minio-bootstrap
 ```
 
+Producer dry run:
+
+```powershell
+python -m producer.main --events 2 --rate 0 --dry-run
+```
+
+Publish sample events:
+
+```powershell
+docker compose --profile producers up producer
+```
+
 ## Stop
 
 ```powershell

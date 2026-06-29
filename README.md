@@ -2,13 +2,14 @@
 
 A production-style data engineering portfolio project for ingesting, processing, storing, and serving retail business data.
 
-The platform is built incrementally across ten phases. Phase 1 provides the local infrastructure foundation:
+The platform is built incrementally across ten phases. The current milestone includes Phase 1 infrastructure and Phase 2 data producers:
 
 - Apache Kafka in KRaft mode
 - Kafka UI
 - PostgreSQL warehouse
 - MinIO S3-compatible object storage
 - Lakehouse folder structure for Bronze, Silver, and Gold layers
+- Synthetic retail event generators and Kafka producers
 
 ## Architecture
 
@@ -57,6 +58,29 @@ The stack creates the core retail event topics at startup:
 - `payments`
 - `clicks`
 - `inventory`
+
+## Generate Events
+
+Dry run without Kafka:
+
+```powershell
+python -m producer.main --events 2 --rate 0 --dry-run
+```
+
+Publish to Kafka after starting Docker Compose:
+
+```powershell
+python -m pip install -r producer/requirements.txt
+python -m producer.main --bootstrap-server localhost:29092 --events 100 --rate 25
+```
+
+Containerized producer:
+
+```powershell
+docker compose --profile producers up producer
+```
+
+See [docs/phase-2-producers.md](docs/phase-2-producers.md).
 
 ## Repository Layout
 

@@ -1,4 +1,4 @@
-.PHONY: up down ps logs config lint test
+.PHONY: up down ps logs config lint test produce dry-run
 
 up:
 	docker compose up -d
@@ -20,3 +20,9 @@ lint:
 
 test:
 	python -m pytest
+
+dry-run:
+	python -m producer.main --events 2 --rate 0 --dry-run
+
+produce:
+	python -m producer.main --bootstrap-server localhost:29092 --events 100 --rate 25

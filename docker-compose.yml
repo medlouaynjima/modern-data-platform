@@ -121,6 +121,26 @@ services:
     ports:
       - "${KAFKA_UI_PORT:-8080}:8080"
 
+  producer:
+    build:
+      context: .
+      dockerfile: producer/Dockerfile
+    container_name: mdp-producer
+    profiles: ["producers"]
+    depends_on:
+      kafka:
+        condition: service_healthy
+      kafka-init:
+        condition: service_completed_successfully
+    command:
+      - --bootstrap-server
+      - kafka:9092
+      - --events
+      - "${PRODUCER_EVENTS:-100}"
+      - --rate
+      - "${PRODUCER_RATE:-20}"
+    restart: "no"
+
 volumes:
   postgres_data:
   minio_data:
