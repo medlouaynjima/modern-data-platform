@@ -191,6 +191,56 @@ services:
       - ./data:/opt/spark/work-dir/data
     restart: "no"
 
+  spark-thrift:
+    build:
+      context: .
+      dockerfile: spark/Dockerfile
+    container_name: mdp-spark-thrift
+    profiles: ["dbt"]
+    entrypoint:
+      - /bin/bash
+      - -lc
+    command:
+      - >
+        /opt/spark/sbin/start-thriftserver.sh
+        --master local[*]
+        --conf spark.sql.extensions=io.delta.sql.DeltaSparkSessionExtension
+        --conf spark.sql.catalog.spark_catalog=org.apache.spark.sql.delta.catalog.DeltaCatalog
+        --conf spark.sql.warehouse.dir=/opt/spark/work-dir/data/gold
+        --conf spark.sql.shuffle.partitions=6
+        && tail -f /dev/null
+    ports:
+      - "${SPARK_THRIFT_PORT:-10000}:10000"
+    volumes:
+      - ./data:/opt/spark/work-dir/data
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c '</dev/tcp/localhost/10000'"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+    restart: unless-stopped
+
+  dbt:
+    build:
+      context: .
+      dockerfile: dbt/Dockerfile
+    container_name: mdp-dbt
+    profiles: ["dbt"]
+    depends_on:
+      spark-thrift:
+        condition: service_healthy
+    working_dir: /usr/app/dbt
+    command:
+      - build
+      - --profiles-dir
+      - /usr/app/dbt
+      - --project-dir
+      - /usr/app/dbt
+    volumes:
+      - ./dbt:/usr/app/dbt
+      - ./data:/opt/spark/work-dir/data
+    restart: "no"
+
 volumes:
   postgres_data:
   minio_data:

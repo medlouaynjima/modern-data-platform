@@ -1,6 +1,6 @@
 # Modern Data Platform Architecture
 
-This project is an incremental, portfolio-grade data platform for real-time retail analytics. The current milestone includes Kafka producers, Spark Streaming into the Bronze Delta layer, and Spark batch transformations into typed Silver Delta tables.
+This project is an incremental, portfolio-grade data platform for real-time retail analytics. The current milestone includes Kafka producers, Spark Streaming into the Bronze Delta layer, Spark batch transformations into typed Silver Delta tables, and dbt Gold marts.
 
 ```mermaid
 flowchart TD
@@ -29,6 +29,8 @@ flowchart TD
 | MinIO | S3-compatible object storage for lakehouse data | `http://localhost:9001` |
 | Spark Bronze | Kafka to Bronze Delta ingestion | Docker Compose profile `spark` |
 | Spark Silver | Bronze to typed Silver Delta transformations | Docker Compose profile `spark` |
+| Spark Thrift | Spark SQL endpoint for dbt | Docker Compose profile `dbt` |
+| dbt | Gold analytics model build and tests | Docker Compose profile `dbt` |
 
 ## Event Topics
 
@@ -51,3 +53,4 @@ MinIO stores object data in the `lakehouse` bucket. Local directories mirror the
 
 Phase 3 writes raw Kafka records to `data/bronze/events` as Delta files.
 Phase 4 writes typed topic tables to `data/silver/customers`, `data/silver/products`, `data/silver/orders`, `data/silver/payments`, `data/silver/clicks`, and `data/silver/inventory`.
+Phase 5 writes Gold analytics models to `data/gold`.

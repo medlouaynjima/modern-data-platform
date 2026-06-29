@@ -1,0 +1,12 @@
+modern_data_platform:
+  target: dev
+  outputs:
+    dev:
+      type: spark
+      method: thrift
+      host: spark-thrift
+      port: 10000
+      schema: gold
+      connect_timeout: 30
+      connect_retries: 3
+      threads: 4

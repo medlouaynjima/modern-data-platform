@@ -1,4 +1,4 @@
-.PHONY: up down ps logs config lint test produce dry-run bronze silver
+.PHONY: up down ps logs config lint test produce dry-run bronze silver gold dbt-debug
 
 up:
 	docker compose up -d
@@ -32,3 +32,9 @@ bronze:
 
 silver:
 	docker compose --profile spark up spark-silver
+
+gold:
+	docker compose --profile dbt up --build dbt
+
+dbt-debug:
+	docker compose --profile dbt run --rm dbt debug --profiles-dir /usr/app/dbt --project-dir /usr/app/dbt

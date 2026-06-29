@@ -17,6 +17,10 @@ data/gold/*
 !data/gold/.gitkeep
 
 # Tooling
+dbt/target/
+dbt/dbt_packages/
+dbt/logs/
+dbt/.user.yml
 .idea/
 .vscode/
 .DS_Store

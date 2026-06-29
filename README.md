@@ -2,7 +2,7 @@
 
 A production-style data engineering portfolio project for ingesting, processing, storing, and serving retail business data.
 
-The platform is built incrementally across ten phases. The current milestone includes Phase 1 infrastructure, Phase 2 data producers, Phase 3 Bronze ingestion, and Phase 4 Silver transformations:
+The platform is built incrementally across ten phases. The current milestone includes Phase 1 infrastructure, Phase 2 data producers, Phase 3 Bronze ingestion, Phase 4 Silver transformations, and Phase 5 Gold dbt models:
 
 - Apache Kafka in KRaft mode
 - Kafka UI
@@ -12,6 +12,7 @@ The platform is built incrementally across ten phases. The current milestone inc
 - Synthetic retail event generators and Kafka producers
 - Spark Streaming Bronze ingestion into Delta Lake
 - Spark Silver transformations into typed Delta tables
+- dbt Gold marts for sales, customer activity, and inventory analytics
 
 ## Architecture
 
@@ -106,6 +107,17 @@ docker compose --profile spark up spark-silver
 Silver Delta output is written under `data/silver/<topic>`.
 See [docs/phase-4-silver-transformations.md](docs/phase-4-silver-transformations.md).
 
+## Build Gold Models
+
+After Silver data exists, run dbt against Spark:
+
+```powershell
+docker compose --profile dbt up --build dbt
+```
+
+Gold Delta output is written under `data/gold`.
+See [docs/phase-5-dbt-gold-models.md](docs/phase-5-dbt-gold-models.md).
+
 ## Repository Layout
 
 ```text
@@ -134,6 +146,7 @@ make logs     # Follow logs
 make down     # Stop services
 make bronze   # Run Spark Streaming to Bronze Delta
 make silver   # Run Spark transformations to Silver Delta
+make gold     # Run dbt models to Gold Delta
 ```
 
 ## Validation

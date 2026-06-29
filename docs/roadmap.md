@@ -8,7 +8,7 @@ Each phase should finish with working services, focused tests, and documentation
 | 2 | Data generator and Kafka producers | Done |
 | 3 | Spark Streaming to Bronze Delta Lake | Done |
 | 4 | Spark transformations to Silver | Done |
-| 5 | dbt models to Gold | Planned |
+| 5 | dbt models to Gold | Done |
 | 6 | Airflow orchestration | Planned |
 | 7 | Great Expectations data quality checks | Planned |
 | 8 | FastAPI and Streamlit analytics | Planned |

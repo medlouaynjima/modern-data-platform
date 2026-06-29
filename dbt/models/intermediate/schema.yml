@@ -1,0 +1,22 @@
+version: 2
+
+models:
+  - name: int_orders_enriched
+    description: Order events enriched with latest product attributes and rolled-up payment status.
+    columns:
+      - name: order_id
+        tests:
+          - not_null
+      - name: order_event_id
+        tests:
+          - not_null
+          - unique
+      - name: customer_id
+        tests:
+          - not_null
+      - name: product_id
+        tests:
+          - not_null
+      - name: total_amount
+        tests:
+          - not_null

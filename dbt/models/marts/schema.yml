@@ -1,0 +1,41 @@
+version: 2
+
+models:
+  - name: fct_daily_sales
+    description: Daily sales metrics by product, country, and channel.
+    columns:
+      - name: order_date
+        tests:
+          - not_null
+      - name: product_id
+        tests:
+          - not_null
+      - name: order_count
+        tests:
+          - not_null
+      - name: gross_revenue
+        tests:
+          - not_null
+
+  - name: fct_customer_activity
+    description: Daily customer engagement and order activity.
+    columns:
+      - name: activity_date
+        tests:
+          - not_null
+      - name: customer_id
+        tests:
+          - not_null
+
+  - name: fct_inventory_position
+    description: Latest inventory position by product and warehouse.
+    columns:
+      - name: product_id
+        tests:
+          - not_null
+      - name: warehouse_id
+        tests:
+          - not_null
+      - name: available_quantity
+        tests:
+          - not_null

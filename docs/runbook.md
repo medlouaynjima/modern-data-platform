@@ -64,6 +64,18 @@ Inspect Silver files:
 Get-ChildItem -Recurse data/silver
 ```
 
+Run Gold dbt models:
+
+```powershell
+docker compose --profile dbt up --build dbt
+```
+
+Inspect Gold files:
+
+```powershell
+Get-ChildItem -Recurse data/gold
+```
+
 ## Stop
 
 ```powershell
