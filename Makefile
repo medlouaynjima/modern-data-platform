@@ -1,4 +1,4 @@
-.PHONY: up down ps logs config lint test produce dry-run
+.PHONY: up down ps logs config lint test produce dry-run bronze
 
 up:
 	docker compose up -d
@@ -26,3 +26,6 @@ dry-run:
 
 produce:
 	python -m producer.main --bootstrap-server localhost:29092 --events 100 --rate 25
+
+bronze:
+	docker compose --profile spark up spark-bronze

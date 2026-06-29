@@ -10,6 +10,7 @@ The platform is built incrementally across ten phases. The current milestone inc
 - MinIO S3-compatible object storage
 - Lakehouse folder structure for Bronze, Silver, and Gold layers
 - Synthetic retail event generators and Kafka producers
+- Spark Streaming Bronze ingestion into Delta Lake
 
 ## Architecture
 
@@ -82,6 +83,17 @@ docker compose --profile producers up producer
 
 See [docs/phase-2-producers.md](docs/phase-2-producers.md).
 
+## Ingest Bronze Data
+
+After Kafka has events, run the Spark Bronze ingestion job:
+
+```powershell
+docker compose --profile spark up spark-bronze
+```
+
+Bronze Delta output is written under `data/bronze/events`.
+See [docs/phase-3-bronze-streaming.md](docs/phase-3-bronze-streaming.md).
+
 ## Repository Layout
 
 ```text
@@ -108,6 +120,7 @@ make up       # Start local services
 make ps       # Show service status
 make logs     # Follow logs
 make down     # Stop services
+make bronze   # Run Spark Streaming to Bronze Delta
 ```
 
 ## Validation

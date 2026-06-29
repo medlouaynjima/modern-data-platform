@@ -140,6 +140,35 @@ services:
       - "${PRODUCER_RATE:-20}"
     restart: "no"
 
+  spark-bronze:
+    build:
+      context: .
+      dockerfile: spark/Dockerfile
+    container_name: mdp-spark-bronze
+    profiles: ["spark"]
+    depends_on:
+      kafka:
+        condition: service_healthy
+      kafka-init:
+        condition: service_completed_successfully
+    command:
+      - --packages
+      - io.delta:delta-spark_2.12:3.2.0,org.apache.spark:spark-sql-kafka-0-10_2.12:3.5.1
+      - --conf
+      - spark.sql.extensions=io.delta.sql.DeltaSparkSessionExtension
+      - --conf
+      - spark.sql.catalog.spark_catalog=org.apache.spark.sql.delta.catalog.DeltaCatalog
+      - /opt/spark/work-dir/spark/bronze_stream.py
+      - --bootstrap-server
+      - kafka:9092
+      - --bronze-path
+      - /opt/spark/work-dir/data/bronze/events
+      - --checkpoint-path
+      - /opt/spark/work-dir/data/bronze/_checkpoints/events
+    volumes:
+      - ./data:/opt/spark/work-dir/data
+    restart: "no"
+
 volumes:
   postgres_data:
   minio_data:

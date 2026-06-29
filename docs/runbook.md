@@ -40,6 +40,18 @@ Publish sample events:
 docker compose --profile producers up producer
 ```
 
+Run Bronze ingestion:
+
+```powershell
+docker compose --profile spark up spark-bronze
+```
+
+Inspect Bronze files:
+
+```powershell
+Get-ChildItem -Recurse data/bronze/events
+```
+
 ## Stop
 
 ```powershell
