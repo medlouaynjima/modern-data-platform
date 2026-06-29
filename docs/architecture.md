@@ -1,0 +1,48 @@
+# Modern Data Platform Architecture
+
+This project is an incremental, portfolio-grade data platform for real-time retail analytics. Phase 1 establishes the local infrastructure foundation: Kafka, Kafka UI, PostgreSQL, and MinIO.
+
+```mermaid
+flowchart TD
+    api["External APIs and Simulators"] --> kafka["Apache Kafka"]
+    kafka --> spark["Spark Streaming"]
+    kafka --> airflow["Airflow Batch DAGs"]
+    spark --> dq["Great Expectations"]
+    airflow --> dq
+    dq --> bronze["Delta Lake: Bronze"]
+    bronze --> silver["Delta Lake: Silver"]
+    silver --> dbt["dbt Transformations"]
+    dbt --> gold["Delta Lake: Gold"]
+    gold --> postgres["PostgreSQL Warehouse"]
+    gold --> ml["ML Pipeline"]
+    postgres --> fastapi["FastAPI"]
+    postgres --> streamlit["Streamlit Dashboard"]
+```
+
+## Phase 1 Services
+
+| Service | Purpose | Local URL |
+| --- | --- | --- |
+| Kafka | Event backbone for producers and streaming jobs | `localhost:29092` |
+| Kafka UI | Topic and message inspection | `http://localhost:8080` |
+| PostgreSQL | Serving warehouse for marts and API queries | `localhost:5432` |
+| MinIO | S3-compatible object storage for lakehouse data | `http://localhost:9001` |
+
+## Event Topics
+
+The `kafka-init` container creates these topics:
+
+- `customers`
+- `products`
+- `orders`
+- `payments`
+- `clicks`
+- `inventory`
+
+## Lakehouse Layout
+
+MinIO stores object data in the `lakehouse` bucket. Local directories mirror the intended Delta Lake layers for development notes, fixtures, and small samples:
+
+- `data/bronze`
+- `data/silver`
+- `data/gold`
