@@ -21,7 +21,7 @@ services:
       retries: 5
 
   minio:
-    image: minio/minio:RELEASE.2026-05-21T18-45-12Z
+    image: minio/minio:latest
     container_name: mdp-minio
     restart: unless-stopped
     command: server /data --console-address ":9001"
@@ -40,7 +40,7 @@ services:
       retries: 5
 
   minio-bootstrap:
-    image: minio/mc:RELEASE.2026-05-21T17-20-06Z
+    image: minio/mc:latest
     container_name: mdp-minio-bootstrap
     depends_on:
       minio:
@@ -58,37 +58,36 @@ services:
     restart: "no"
 
   kafka:
-    image: bitnami/kafka:3.7
+    image: apache/kafka:3.7.0
     container_name: mdp-kafka
     restart: unless-stopped
     environment:
-      KAFKA_CFG_NODE_ID: 1
-      KAFKA_CFG_PROCESS_ROLES: broker,controller
-      KAFKA_CFG_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
-      KAFKA_CFG_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093,EXTERNAL://:29092
-      KAFKA_CFG_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,EXTERNAL://localhost:29092
-      KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,EXTERNAL:PLAINTEXT
-      KAFKA_CFG_CONTROLLER_LISTENER_NAMES: CONTROLLER
-      KAFKA_CFG_INTER_BROKER_LISTENER_NAME: PLAINTEXT
-      KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE: "false"
-      KAFKA_CFG_NUM_PARTITIONS: 3
-      KAFKA_CFG_DEFAULT_REPLICATION_FACTOR: 1
-      KAFKA_CFG_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
-      KAFKA_CFG_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
-      KAFKA_CFG_TRANSACTION_STATE_LOG_MIN_ISR: 1
-      ALLOW_PLAINTEXT_LISTENER: "yes"
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093,EXTERNAL://:29092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,EXTERNAL://localhost:29092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,EXTERNAL:PLAINTEXT
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"
+      KAFKA_NUM_PARTITIONS: 3
+      KAFKA_DEFAULT_REPLICATION_FACTOR: 1
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
     ports:
       - "${KAFKA_EXTERNAL_PORT:-29092}:29092"
     volumes:
-      - kafka_data:/bitnami/kafka
+      - kafka_data:/tmp/kraft-combined-logs
     healthcheck:
-      test: ["CMD-SHELL", "kafka-topics.sh --bootstrap-server localhost:9092 --list >/dev/null 2>&1"]
+      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --list >/dev/null 2>&1"]
       interval: 10s
       timeout: 10s
       retries: 10
 
   kafka-init:
-    image: bitnami/kafka:3.7
+    image: apache/kafka:3.7.0
     container_name: mdp-kafka-init
     depends_on:
       kafka:
@@ -98,13 +97,13 @@ services:
       - -ec
       - |
         for topic in customers products orders payments clicks inventory; do
-          kafka-topics.sh --bootstrap-server kafka:9092 \
+          /opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:9092 \
             --create --if-not-exists \
             --topic "$$topic" \
             --partitions 3 \
             --replication-factor 1
         done
-        kafka-topics.sh --bootstrap-server kafka:9092 --list
+        /opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:9092 --list
     restart: "no"
 
   kafka-ui:
@@ -119,7 +118,7 @@ services:
       KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
       DYNAMIC_CONFIG_ENABLED: "false"
     ports:
-      - "${KAFKA_UI_PORT:-8080}:8080"
+      - "${KAFKA_UI_PORT:-8081}:8080"
 
   producer:
     build:

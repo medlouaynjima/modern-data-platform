@@ -44,4 +44,4 @@ Or run the containerized producer:
 docker compose --profile producers up producer
 ```
 
-Inspect messages in Kafka UI at `http://localhost:8080`.
+Inspect messages in Kafka UI at `http://localhost:8081`.

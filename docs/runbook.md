@@ -13,7 +13,7 @@ docker compose ps
 Kafka topics:
 
 ```powershell
-docker compose exec kafka kafka-topics.sh --bootstrap-server kafka:9092 --list
+docker compose exec kafka /opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:9092 --list
 ```
 
 PostgreSQL schemas:

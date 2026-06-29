@@ -41,7 +41,7 @@ See [docs/runbook.md](docs/runbook.md) for local operating commands.
 | Service | URL |
 | --- | --- |
 | Kafka bootstrap | `localhost:29092` |
-| Kafka UI | `http://localhost:8080` |
+| Kafka UI | `http://localhost:8081` |
 | PostgreSQL | `localhost:5432` |
 | MinIO API | `http://localhost:9000` |
 | MinIO Console | `http://localhost:9001` |

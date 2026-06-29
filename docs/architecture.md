@@ -24,7 +24,7 @@ flowchart TD
 | Service | Purpose | Local URL |
 | --- | --- | --- |
 | Kafka | Event backbone for producers and streaming jobs | `localhost:29092` |
-| Kafka UI | Topic and message inspection | `http://localhost:8080` |
+| Kafka UI | Topic and message inspection | `http://localhost:8081` |
 | PostgreSQL | Serving warehouse for marts and API queries | `localhost:5432` |
 | MinIO | S3-compatible object storage for lakehouse data | `http://localhost:9001` |
 
