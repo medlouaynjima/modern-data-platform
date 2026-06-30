@@ -1,6 +1,6 @@
 # Modern Data Platform Architecture
 
-This project is an incremental, portfolio-grade data platform for real-time retail analytics. The current milestone includes Kafka producers, Spark Streaming into the Bronze Delta layer, Spark batch transformations into typed Silver Delta tables, and dbt Gold marts.
+This project is an incremental, portfolio-grade data platform for real-time retail analytics. The current milestone includes Kafka producers, Spark Streaming into the Bronze Delta layer, Spark batch transformations into typed Silver Delta tables, dbt Gold marts, and Airflow orchestration.
 
 ```mermaid
 flowchart TD
@@ -31,6 +31,8 @@ flowchart TD
 | Spark Silver | Bronze to typed Silver Delta transformations | Docker Compose profile `spark` |
 | Spark Thrift | Spark SQL endpoint for dbt | Docker Compose profile `dbt` |
 | dbt | Gold analytics model build and tests | Docker Compose profile `dbt` |
+| Airflow | Pipeline orchestration and scheduling | Docker Compose profile `airflow` |
+| Airflow UI | DAG monitoring and manual triggers | `http://localhost:8080` |
 
 ## Event Topics
 

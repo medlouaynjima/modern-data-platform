@@ -21,6 +21,8 @@ dbt/target/
 dbt/dbt_packages/
 dbt/logs/
 dbt/.user.yml
+airflow/logs/*
+!airflow/logs/.gitkeep
 .idea/
 .vscode/
 .DS_Store

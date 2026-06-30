@@ -2,7 +2,7 @@
 
 A production-style data engineering portfolio project for ingesting, processing, storing, and serving retail business data.
 
-The platform is built incrementally across ten phases. The current milestone includes Phase 1 infrastructure, Phase 2 data producers, Phase 3 Bronze ingestion, Phase 4 Silver transformations, and Phase 5 Gold dbt models:
+The platform is built incrementally across ten phases. The current milestone includes Phase 1 infrastructure, Phase 2 data producers, Phase 3 Bronze ingestion, Phase 4 Silver transformations, Phase 5 Gold dbt models, and Phase 6 Airflow orchestration:
 
 - Apache Kafka in KRaft mode
 - Kafka UI
@@ -13,6 +13,7 @@ The platform is built incrementally across ten phases. The current milestone inc
 - Spark Streaming Bronze ingestion into Delta Lake
 - Spark Silver transformations into typed Delta tables
 - dbt Gold marts for sales, customer activity, and inventory analytics
+- Airflow orchestration for the end-to-end retail pipeline
 
 ## Architecture
 
@@ -48,6 +49,7 @@ See [docs/runbook.md](docs/runbook.md) for local operating commands.
 | PostgreSQL | `localhost:5432` |
 | MinIO API | `http://localhost:9000` |
 | MinIO Console | `http://localhost:9001` |
+| Airflow UI | `http://localhost:8080` |
 
 Default MinIO credentials are `minioadmin` / `minioadmin`. Default PostgreSQL credentials are in `.env.example`.
 
@@ -118,6 +120,23 @@ docker compose --profile dbt up --build dbt
 Gold Delta output is written under `data/gold`.
 See [docs/phase-5-dbt-gold-models.md](docs/phase-5-dbt-gold-models.md).
 
+## Orchestrate with Airflow
+
+Start Airflow and Spark Thrift:
+
+```powershell
+docker compose --profile airflow up -d --build
+```
+
+Trigger the full pipeline DAG:
+
+```powershell
+docker compose --profile airflow exec airflow-scheduler airflow dags trigger retail_pipeline
+```
+
+Default Airflow credentials are `admin` / `admin`.
+See [docs/phase-6-airflow-orchestration.md](docs/phase-6-airflow-orchestration.md).
+
 ## Repository Layout
 
 ```text
@@ -147,6 +166,8 @@ make down     # Stop services
 make bronze   # Run Spark Streaming to Bronze Delta
 make silver   # Run Spark transformations to Silver Delta
 make gold     # Run dbt models to Gold Delta
+make airflow  # Start Airflow services
+make pipeline # Trigger the retail_pipeline DAG
 ```
 
 ## Validation

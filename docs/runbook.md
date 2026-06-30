@@ -76,6 +76,18 @@ Inspect Gold files:
 Get-ChildItem -Recurse data/gold
 ```
 
+Start Airflow:
+
+```powershell
+docker compose --profile airflow up -d --build
+```
+
+Trigger the pipeline DAG:
+
+```powershell
+docker compose --profile airflow exec airflow-scheduler airflow dags trigger retail_pipeline
+```
+
 ## Stop
 
 ```powershell

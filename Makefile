@@ -1,4 +1,4 @@
-.PHONY: up down ps logs config lint test produce dry-run bronze silver gold dbt-debug
+.PHONY: up down ps logs config lint test produce dry-run bronze silver gold dbt-debug airflow pipeline
 
 up:
 	docker compose up -d
@@ -38,3 +38,9 @@ gold:
 
 dbt-debug:
 	docker compose --profile dbt run --rm dbt debug --profiles-dir /usr/app/dbt --project-dir /usr/app/dbt
+
+airflow:
+	docker compose --profile airflow up -d --build
+
+pipeline:
+	docker compose --profile airflow exec airflow-scheduler airflow dags trigger retail_pipeline
