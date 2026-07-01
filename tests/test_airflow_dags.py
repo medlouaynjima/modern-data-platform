@@ -31,6 +31,12 @@ def dag_bag():
     return _import_dag_bag()
 
 
+def _get_dag(dag_bag, dag_id: str):
+    dag = dag_bag.dags.get(dag_id)
+    assert dag is not None, f"DAG {dag_id} missing from bag: {dag_bag.import_errors}"
+    return dag
+
+
 def test_dags_load_without_import_errors(dag_bag) -> None:
     assert dag_bag.import_errors == {}, f"DAG import errors: {dag_bag.import_errors}"
 
@@ -40,9 +46,7 @@ def test_retail_pipeline_dag_exists(dag_bag) -> None:
 
 
 def test_retail_pipeline_task_chain(dag_bag) -> None:
-    dag = dag_bag.get_dag("retail_pipeline")
-    assert dag is not None
-
+    dag = _get_dag(dag_bag, "retail_pipeline")
     expected_tasks = {
         "produce_events",
         "inject_quarantine_demo",
@@ -77,9 +81,7 @@ def test_retail_pipeline_task_chain(dag_bag) -> None:
 
 
 def test_retail_pipeline_retries_configured(dag_bag) -> None:
-    dag = dag_bag.get_dag("retail_pipeline")
-    assert dag is not None
-    assert dag.default_args["retries"] == 2
+    dag = _get_dag(dag_bag, "retail_pipeline")    assert dag.default_args["retries"] == 2
     assert dag.default_args["retry_delay"] == timedelta(minutes=2)
 
     for task in dag.tasks:
