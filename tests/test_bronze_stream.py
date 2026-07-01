@@ -17,6 +17,7 @@ def test_bronze_config_defaults_to_available_now():
 
     assert config.trigger_available_now is True
     assert config.bronze_path == "data/bronze/events"
+    assert config.quarantine_path == "data/bronze/quarantine/events"
     assert config.checkpoint_path == "data/bronze/_checkpoints/events"
 
 

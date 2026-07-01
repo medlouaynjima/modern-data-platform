@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://modern-data-platform.local/schemas/clicks.json",
+  "title": "clicks",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "event_id",
+    "event_type",
+    "session_id",
+    "customer_id",
+    "product_id",
+    "timestamp"
+  ],
+  "properties": {
+    "event_id": { "type": "string", "minLength": 1 },
+    "event_type": { "type": "string", "minLength": 1 },
+    "session_id": { "type": "string", "minLength": 1 },
+    "customer_id": { "type": "integer", "minimum": 1 },
+    "product_id": { "type": "integer", "minimum": 1 },
+    "device": { "type": "string" },
+    "country": { "type": "string" },
+    "referrer": { "type": "string" },
+    "timestamp": { "type": "string", "minLength": 1 }
+  }
+}

@@ -3,6 +3,10 @@ FROM apache/spark:3.5.1
 USER root
 WORKDIR /opt/spark/work-dir
 
+COPY contracts/requirements.txt /tmp/contracts-requirements.txt
+RUN pip install --no-cache-dir -r /tmp/contracts-requirements.txt
+
+COPY contracts /opt/spark/work-dir/contracts
 COPY spark /opt/spark/work-dir/spark
 
 ADD https://repo1.maven.org/maven2/io/delta/delta-spark_2.12/3.2.0/delta-spark_2.12-3.2.0.jar /opt/spark/jars/

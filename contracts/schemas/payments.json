@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://modern-data-platform.local/schemas/payments.json",
+  "title": "payments",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "event_id",
+    "event_type",
+    "payment_id",
+    "order_id",
+    "amount",
+    "status",
+    "timestamp"
+  ],
+  "properties": {
+    "event_id": { "type": "string", "minLength": 1 },
+    "event_type": { "type": "string", "minLength": 1 },
+    "payment_id": { "type": "string", "minLength": 1 },
+    "order_id": { "type": "integer", "minimum": 1 },
+    "customer_id": { "type": "integer", "minimum": 1 },
+    "amount": { "type": "number", "exclusiveMinimum": 0 },
+    "currency": { "type": "string" },
+    "payment_method": { "type": "string" },
+    "status": {
+      "type": "string",
+      "enum": ["authorized", "declined", "refunded"]
+    },
+    "timestamp": { "type": "string", "minLength": 1 }
+  }
+}

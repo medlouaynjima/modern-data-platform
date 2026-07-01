@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://modern-data-platform.local/schemas/products.json",
+  "title": "products",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "event_id",
+    "event_type",
+    "product_id",
+    "sku",
+    "price",
+    "timestamp"
+  ],
+  "properties": {
+    "event_id": { "type": "string", "minLength": 1 },
+    "event_type": { "type": "string", "minLength": 1 },
+    "product_id": { "type": "integer", "minimum": 1 },
+    "sku": { "type": "string", "minLength": 1 },
+    "name": { "type": "string" },
+    "category": { "type": "string" },
+    "price": { "type": "number", "exclusiveMinimum": 0 },
+    "cost": { "type": "number", "minimum": 0 },
+    "active": { "type": "boolean" },
+    "timestamp": { "type": "string", "minLength": 1 }
+  }
+}

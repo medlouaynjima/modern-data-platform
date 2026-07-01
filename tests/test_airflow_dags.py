@@ -12,15 +12,18 @@ DAGS_FOLDER = ROOT / "airflow" / "dags"
 
 
 def _import_dag_bag():
-    root_path = str(ROOT.resolve())
+    original_path = sys.path.copy()
     sys.path = [path for path in sys.path if Path(path).resolve() != ROOT.resolve()]
 
-    pytest.importorskip("airflow")
+    try:
+        pytest.importorskip("airflow")
 
-    from airflow.models import DagBag
+        from airflow.models import DagBag
 
-    os.environ.setdefault("AIRFLOW__CORE__UNIT_TEST_MODE", "True")
-    return DagBag(dag_folder=str(DAGS_FOLDER), include_examples=False)
+        os.environ.setdefault("AIRFLOW__CORE__UNIT_TEST_MODE", "True")
+        return DagBag(dag_folder=str(DAGS_FOLDER), include_examples=False)
+    finally:
+        sys.path = original_path
 
 
 @pytest.fixture(scope="module")
@@ -42,23 +45,35 @@ def test_retail_pipeline_task_chain(dag_bag) -> None:
 
     expected_tasks = {
         "produce_events",
+        "inject_quarantine_demo",
         "bronze_ingestion",
+        "validate_bronze",
         "silver_transformation",
+        "validate_silver",
         "wait_for_spark_thrift",
         "dbt_gold_build",
+        "validate_gold",
     }
     assert expected_tasks == {task.task_id for task in dag.tasks}
 
     produce = dag.get_task("produce_events")
+    inject = dag.get_task("inject_quarantine_demo")
     bronze = dag.get_task("bronze_ingestion")
+    validate_bronze = dag.get_task("validate_bronze")
     silver = dag.get_task("silver_transformation")
+    validate_silver = dag.get_task("validate_silver")
     wait = dag.get_task("wait_for_spark_thrift")
     dbt = dag.get_task("dbt_gold_build")
+    validate_gold = dag.get_task("validate_gold")
 
-    assert bronze in produce.downstream_list
-    assert silver in bronze.downstream_list
-    assert wait in silver.downstream_list
+    assert inject in produce.downstream_list
+    assert bronze in inject.downstream_list
+    assert validate_bronze in bronze.downstream_list
+    assert silver in validate_bronze.downstream_list
+    assert validate_silver in silver.downstream_list
+    assert wait in validate_silver.downstream_list
     assert dbt in wait.downstream_list
+    assert validate_gold in dbt.downstream_list
 
 
 def test_retail_pipeline_retries_configured(dag_bag) -> None:
@@ -88,20 +103,29 @@ def test_retail_pipeline_dag_source_contract() -> None:
 
     for task_id in (
         "produce_events",
+        "inject_quarantine_demo",
         "bronze_ingestion",
+        "validate_bronze",
         "silver_transformation",
+        "validate_silver",
         "wait_for_spark_thrift",
         "dbt_gold_build",
+        "validate_gold",
     ):
         assert f'task_id="{task_id}"' in dag_source
 
     assert '"retries": 2' in dag_source
     assert "timedelta(minutes=2)" in dag_source
     assert "compose_job(" in dag_source
+    assert "--build --no-deps" in dag_source
     assert "--abort-on-container-exit" in dag_source
     assert "execution_timeout=JOB_TIMEOUT" in dag_source
     assert "produce_events" in dag_source
+    assert ">> inject_quarantine_demo" in dag_source
     assert ">> bronze_ingestion" in dag_source
+    assert ">> validate_bronze" in dag_source
     assert ">> silver_transformation" in dag_source
+    assert ">> validate_silver" in dag_source
     assert ">> wait_for_spark_thrift" in dag_source
     assert ">> dbt_gold_build" in dag_source
+    assert ">> validate_gold" in dag_source

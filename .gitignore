@@ -13,8 +13,11 @@ data/bronze/*
 data/silver/*
 data/gold/*
 !data/bronze/.gitkeep
+!data/bronze/quarantine/.gitkeep
 !data/silver/.gitkeep
 !data/gold/.gitkeep
+data/validations/*
+!data/validations/.gitkeep
 
 # Tooling
 dbt/target/

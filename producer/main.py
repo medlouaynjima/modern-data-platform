@@ -41,22 +41,51 @@ def record_key(topic: str, event: dict[str, Any]) -> str:
 
 
 def run(config: ProducerConfig) -> int:
+    from contracts.validator import validate_event
+
     generator = RetailEventGenerator(seed=config.seed)
     raw_events = generator.event_batch(config.events)
     records = list(records_from_events(raw_events))
 
     if config.dry_run:
+        accepted = 0
+        rejected = 0
         for topic, key, event in records:
-            print(json.dumps({"topic": topic, "key": key, "value": event}, sort_keys=True))
+            result = validate_event(topic, event)
+            payload = {"topic": topic, "key": key, "value": event, "valid": result.valid}
+            if not result.valid:
+                payload["errors"] = list(result.errors)
+                rejected += 1
+            else:
+                accepted += 1
+            print(json.dumps(payload, sort_keys=True))
             _sleep_for_rate(config.rate_per_second)
-        return len(records)
+        print(f"contract preview accepted={accepted} rejected={rejected}")
+        return accepted
 
     producer = JsonKafkaProducer(config.bootstrap_servers)
     try:
         sent = 0
-        for record in records:
-            sent += producer.send_many([record])
+        rejected = 0
+        for topic, key, event in records:
+            result = validate_event(topic, event)
+            if not result.valid:
+                rejected += 1
+                print(
+                    json.dumps(
+                        {
+                            "rejected": True,
+                            "topic": topic,
+                            "key": key,
+                            "errors": list(result.errors),
+                        },
+                        sort_keys=True,
+                    )
+                )
+                continue
+            sent += producer.send_many([(topic, key, event)])
             _sleep_for_rate(config.rate_per_second)
+        print(f"published={sent} rejected={rejected}")
         return sent
     finally:
         producer.close()

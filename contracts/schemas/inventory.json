@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://modern-data-platform.local/schemas/inventory.json",
+  "title": "inventory",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "event_id",
+    "event_type",
+    "inventory_event_id",
+    "product_id",
+    "warehouse_id",
+    "available_quantity",
+    "timestamp"
+  ],
+  "properties": {
+    "event_id": { "type": "string", "minLength": 1 },
+    "event_type": { "type": "string", "minLength": 1 },
+    "inventory_event_id": { "type": "string", "minLength": 1 },
+    "product_id": { "type": "integer", "minimum": 1 },
+    "warehouse_id": { "type": "string", "minLength": 1 },
+    "quantity_delta": { "type": "integer" },
+    "available_quantity": { "type": "integer", "minimum": 0 },
+    "reason": { "type": "string" },
+    "timestamp": { "type": "string", "minLength": 1 }
+  }
+}

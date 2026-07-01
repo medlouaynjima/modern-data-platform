@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://modern-data-platform.local/schemas/customers.json",
+  "title": "customers",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "event_id",
+    "event_type",
+    "customer_id",
+    "email",
+    "country",
+    "timestamp"
+  ],
+  "properties": {
+    "event_id": { "type": "string", "minLength": 1 },
+    "event_type": { "type": "string", "minLength": 1 },
+    "customer_id": { "type": "integer", "minimum": 1 },
+    "name": { "type": "string" },
+    "email": { "type": "string", "format": "email" },
+    "country": { "type": "string", "minLength": 1 },
+    "signup_date": { "type": "string" },
+    "loyalty_tier": { "type": "string" },
+    "timestamp": { "type": "string", "minLength": 1 }
+  }
+}

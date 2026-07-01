@@ -1,4 +1,4 @@
-.PHONY: up down ps logs config lint test produce dry-run bronze silver gold dbt-debug airflow pipeline
+|.PHONY: up down ps logs config lint test produce dry-run bronze silver gold dbt-debug airflow pipeline validate-bronze validate-silver validate-gold validate-silver validate-gold
 
 up:
 	docker compose up -d
@@ -16,7 +16,7 @@ config:
 	docker compose config
 
 lint:
-	python -m compileall producer consumer spark fastapi streamlit ml tests
+	python -m compileall producer consumer spark contracts data_quality fastapi streamlit ml tests
 
 test:
 	python -m pytest
@@ -44,3 +44,12 @@ airflow:
 
 pipeline:
 	docker compose --profile airflow exec airflow-scheduler airflow dags trigger retail_pipeline
+
+validate-bronze:
+	docker compose --profile ge up --build ge-bronze
+
+validate-silver:
+	docker compose --profile ge up --build ge-silver
+
+validate-gold:
+	docker compose --profile ge up --build ge-gold

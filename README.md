@@ -2,18 +2,25 @@
 
 A production-style data engineering portfolio project for ingesting, processing, storing, and serving retail business data.
 
-The platform is built incrementally across ten phases. The current milestone includes Phase 1 infrastructure, Phase 2 data producers, Phase 3 Bronze ingestion, Phase 4 Silver transformations, Phase 5 Gold dbt models, and Phase 6 Airflow orchestration:
+The platform is built incrementally across **eleven phases**. Phases 1–7 are complete.
 
-- Apache Kafka in KRaft mode
-- Kafka UI
-- PostgreSQL warehouse
-- MinIO S3-compatible object storage
-- Lakehouse folder structure for Bronze, Silver, and Gold layers
-- Synthetic retail event generators and Kafka producers
-- Spark Streaming Bronze ingestion into Delta Lake
+**Done (Phases 1–7):**
+
+- Apache Kafka in KRaft mode, Kafka UI, PostgreSQL, MinIO, Apicurio Schema Registry
+- Synthetic retail event producers with pre-publish contract checks
+- Spark Streaming Bronze ingestion with pre-Bronze validation and quarantine
 - Spark Silver transformations into typed Delta tables
-- dbt Gold marts for sales, customer activity, and inventory analytics
+- dbt Gold marts for sales, customer activity, and inventory
 - Airflow orchestration for the end-to-end retail pipeline
+- JSON Schema data contracts and Great Expectations post-layer validation
+
+**Planned (Phases 8–11):**
+- Observability (Prometheus + Grafana)
+- FastAPI + Streamlit serving layer
+- ML pipeline (forecasting, churn, recommendations)
+- Production engineering (CI/CD, integration tests, schema versioning)
+
+See [docs/roadmap.md](docs/roadmap.md) for the full revised plan.
 
 ## Architecture
 
@@ -137,12 +144,25 @@ docker compose --profile airflow exec airflow-scheduler airflow dags trigger ret
 Default Airflow credentials are `admin` / `admin`.
 See [docs/phase-6-airflow-orchestration.md](docs/phase-6-airflow-orchestration.md).
 
+## Validate Data Quality
+
+After Silver or Gold data exists, run Great Expectations checkpoints:
+
+```powershell
+docker compose --profile ge up --build ge-bronze
+docker compose --profile ge up --build ge-silver
+docker compose --profile ge up --build ge-gold
+```
+
+See [docs/phase-7-great-expectations.md](docs/phase-7-great-expectations.md).
+
 ## Repository Layout
 
 ```text
 airflow/       Production DAGs and orchestration assets
 consumer/      Streaming and batch consumers
 data/          Local Bronze, Silver, and Gold development data
+data_quality/  Great Expectations suites and validation CLI
 dbt/           Analytics engineering models
 docs/          Architecture, roadmap, and operating notes
 fastapi/       Serving API
@@ -168,6 +188,9 @@ make silver   # Run Spark transformations to Silver Delta
 make gold     # Run dbt models to Gold Delta
 make airflow  # Start Airflow services
 make pipeline # Trigger the retail_pipeline DAG
+make validate-bronze # Run Great Expectations on Bronze events
+make validate-silver # Run Great Expectations on Silver tables
+make validate-gold   # Run Great Expectations on Gold marts
 ```
 
 ## Validation

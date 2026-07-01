@@ -85,7 +85,38 @@ docker compose --profile airflow up -d --build
 Trigger the pipeline DAG:
 
 ```powershell
+docker compose --profile airflow exec airflow-scheduler airflow dags unpause retail_pipeline
 docker compose --profile airflow exec airflow-scheduler airflow dags trigger retail_pipeline
+```
+
+Monitor run progress:
+
+```powershell
+docker compose --profile airflow exec airflow-scheduler airflow tasks states-for-dag-run retail_pipeline <run_id>
+```
+
+Inject quarantine demo events manually (optional — the DAG task does this automatically):
+
+```powershell
+docker compose --profile producers up quarantine-injector
+```
+
+Validate Bronze quality:
+
+```powershell
+docker compose --profile ge up --build ge-bronze
+```
+
+Validate Silver quality:
+
+```powershell
+docker compose --profile ge up --build ge-silver
+```
+
+Validate Gold quality:
+
+```powershell
+docker compose --profile ge up --build ge-gold
 ```
 
 ## Stop

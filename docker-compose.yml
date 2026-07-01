@@ -120,6 +120,34 @@ services:
     ports:
       - "${KAFKA_UI_PORT:-8081}:8080"
 
+  schema-registry:
+    image: apicurio/apicurio-registry-mem:2.5.11.Final
+    container_name: mdp-schema-registry
+    restart: unless-stopped
+    ports:
+      - "${SCHEMA_REGISTRY_PORT:-8083}:8080"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health/ready"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  schema-registry-init:
+    build:
+      context: .
+      dockerfile: schema_registry/Dockerfile
+    container_name: mdp-schema-registry-init
+    depends_on:
+      schema-registry:
+        condition: service_healthy
+    environment:
+      SCHEMA_REGISTRY_URL: http://schema-registry:8080
+      SCHEMA_REGISTRY_GROUP: retail-events
+      CONTRACTS_SCHEMAS_DIR: /schemas
+    volumes:
+      - ./contracts/schemas:/schemas:ro
+    restart: "no"
+
   producer:
     build:
       context: .
@@ -131,6 +159,10 @@ services:
         condition: service_healthy
       kafka-init:
         condition: service_completed_successfully
+      schema-registry-init:
+        condition: service_completed_successfully
+    environment:
+      SCHEMA_REGISTRY_URL: http://schema-registry:8080
     command:
       - --bootstrap-server
       - kafka:9092
@@ -138,6 +170,23 @@ services:
       - "${PRODUCER_EVENTS:-100}"
       - --rate
       - "${PRODUCER_RATE:-20}"
+    restart: "no"
+
+  quarantine-injector:
+    build:
+      context: .
+      dockerfile: producer/Dockerfile
+    container_name: mdp-quarantine-injector
+    profiles: ["producers"]
+    depends_on:
+      kafka:
+        condition: service_healthy
+      kafka-init:
+        condition: service_completed_successfully
+    entrypoint: ["python", "-m", "producer.inject_quarantine"]
+    command:
+      - --bootstrap-server
+      - kafka:9092
     restart: "no"
 
   spark-bronze:
@@ -151,6 +200,11 @@ services:
         condition: service_healthy
       kafka-init:
         condition: service_completed_successfully
+      schema-registry-init:
+        condition: service_completed_successfully
+    environment:
+      SCHEMA_REGISTRY_URL: http://schema-registry:8080
+      CONTRACTS_SCHEMAS_DIR: /opt/spark/work-dir/contracts/schemas
     command:
       - --packages
       - io.delta:delta-spark_2.12:3.2.0,org.apache.spark:spark-sql-kafka-0-10_2.12:3.5.1
@@ -163,8 +217,12 @@ services:
       - kafka:9092
       - --bronze-path
       - /opt/spark/work-dir/data/bronze/events
+      - --quarantine-path
+      - /opt/spark/work-dir/data/bronze/quarantine/events
       - --checkpoint-path
       - /opt/spark/work-dir/data/bronze/_checkpoints/events
+      - --schema-registry-url
+      - http://schema-registry:8080
     volumes:
       - ${MDP_PROJECT_DIR:-.}/data:/opt/spark/work-dir/data
     restart: "no"
@@ -239,6 +297,69 @@ services:
     volumes:
       - ${MDP_PROJECT_DIR:-.}/dbt:/usr/app/dbt
       - ${MDP_PROJECT_DIR:-.}/data:/opt/spark/work-dir/data
+    restart: "no"
+
+  ge-bronze:
+    build:
+      context: .
+      dockerfile: data_quality/Dockerfile
+    container_name: mdp-ge-bronze
+    profiles: ["ge"]
+    command:
+      - --layer
+      - bronze
+      - --bronze-path
+      - /data/bronze
+      - --silver-path
+      - /data/silver
+      - --gold-path
+      - /data/gold
+      - --validations-path
+      - /data/validations
+    volumes:
+      - ${MDP_PROJECT_DIR:-.}/data:/data
+    restart: "no"
+
+  ge-silver:
+    build:
+      context: .
+      dockerfile: data_quality/Dockerfile
+    container_name: mdp-ge-silver
+    profiles: ["ge"]
+    command:
+      - --layer
+      - silver
+      - --bronze-path
+      - /data/bronze
+      - --silver-path
+      - /data/silver
+      - --gold-path
+      - /data/gold
+      - --validations-path
+      - /data/validations
+    volumes:
+      - ${MDP_PROJECT_DIR:-.}/data:/data
+    restart: "no"
+
+  ge-gold:
+    build:
+      context: .
+      dockerfile: data_quality/Dockerfile
+    container_name: mdp-ge-gold
+    profiles: ["ge"]
+    command:
+      - --layer
+      - gold
+      - --bronze-path
+      - /data/bronze
+      - --silver-path
+      - /data/silver
+      - --gold-path
+      - /data/gold
+      - --validations-path
+      - /data/validations
+    volumes:
+      - ${MDP_PROJECT_DIR:-.}/data:/data
     restart: "no"
 
   airflow-init:
