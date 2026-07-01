@@ -1,0 +1,6 @@
+lowercaseOutputName: true
+lowercaseOutputLabelNames: true
+rules:
+# Special cases and very specific rules can go here, but for now we just 
+# rely on the default JMX to Prometheus fallback which exports everything.
+- pattern: ".*"

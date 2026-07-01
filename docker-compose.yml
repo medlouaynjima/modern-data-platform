@@ -58,7 +58,9 @@ services:
     restart: "no"
 
   kafka:
-    image: apache/kafka:3.7.0
+    build:
+      context: .
+      dockerfile: kafka/Dockerfile
     container_name: mdp-kafka
     restart: unless-stopped
     environment:
@@ -81,7 +83,7 @@ services:
     volumes:
       - kafka_data:/tmp/kraft-combined-logs
     healthcheck:
-      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --list >/dev/null 2>&1"]
+      test: ["CMD-SHELL", "unset KAFKA_OPTS && /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --list >/dev/null 2>&1"]
       interval: 10s
       timeout: 10s
       retries: 10
@@ -254,7 +256,7 @@ services:
       context: .
       dockerfile: spark/Dockerfile
     container_name: mdp-spark-thrift
-    profiles: ["dbt", "airflow"]
+    profiles: ["dbt", "airflow", "serving"]
     entrypoint:
       - /bin/bash
       - -lc
@@ -461,6 +463,53 @@ services:
       - ./airflow/logs:/opt/airflow/logs
       - ./airflow/plugins:/opt/airflow/plugins
       - /var/run/docker.sock:/var/run/docker.sock
+    restart: unless-stopped
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: mdp-prometheus
+    profiles: ["monitoring"]
+    volumes:
+      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+    ports:
+      - "9090:9090"
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: mdp-grafana
+    profiles: ["monitoring"]
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    restart: unless-stopped
+
+  fastapi:
+    build:
+      context: ./fastapi
+      dockerfile: Dockerfile
+    container_name: mdp-fastapi
+    profiles: ["serving"]
+    depends_on:
+      spark-thrift:
+        condition: service_healthy
+    ports:
+      - "8000:8000"
+    restart: unless-stopped
+
+  streamlit:
+    build:
+      context: ./streamlit
+      dockerfile: Dockerfile
+    container_name: mdp-streamlit
+    profiles: ["serving"]
+    ports:
+      - "8501:8501"
     restart: unless-stopped
 
 volumes:
