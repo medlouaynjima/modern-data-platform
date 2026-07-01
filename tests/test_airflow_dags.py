@@ -81,7 +81,8 @@ def test_retail_pipeline_task_chain(dag_bag) -> None:
 
 
 def test_retail_pipeline_retries_configured(dag_bag) -> None:
-    dag = _get_dag(dag_bag, "retail_pipeline")    assert dag.default_args["retries"] == 2
+    dag = _get_dag(dag_bag, "retail_pipeline")
+    assert dag.default_args["retries"] == 2
     assert dag.default_args["retry_delay"] == timedelta(minutes=2)
 
     for task in dag.tasks:
