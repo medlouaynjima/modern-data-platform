@@ -13,8 +13,8 @@ Each phase should finish with working services, focused tests, and documentation
 | 5 | dbt models to Gold | Done |
 | 6 | Airflow orchestration | Done |
 | 7 | Data contracts + validation (schema registry, pre-Bronze checks) | Done |
-| 8 | Observability layer (Prometheus, Grafana, pipeline metrics) | Planned |
-| 9 | Serving layer (FastAPI + Streamlit) | Planned |
+| 8 | Observability layer (Prometheus, Grafana, pipeline metrics) | Done |
+| 9 | Serving layer (FastAPI + Streamlit) | Done |
 | 10 | ML layer (forecasting, churn, recommendations) | Planned |
 | 11 | Production engineering (CI/CD, integration tests, schema versioning) | Planned |
 
@@ -60,6 +60,8 @@ Monitor pipeline health early:
 | Airflow UI | DAG run history and task logs |
 | Spark UI | Job stages and executor metrics |
 
+See [phase-8-observability.md](phase-8-observability.md).
+
 ### Phase 9 — Serving Layer (API + BI)
 
 Make Gold data usable:
@@ -75,6 +77,8 @@ Make Gold data usable:
 - Revenue charts
 - Live pipeline status
 - KPI cards
+
+See [phase-9-serving.md](phase-9-serving.md).
 
 ### Phase 10 — ML Layer
 

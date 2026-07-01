@@ -15,7 +15,7 @@ def get_daily_sales() -> List[Dict[str, Any]]:
     SELECT order_date as date, 
            sum(gross_revenue) as total_sales_amount, 
            sum(order_count) as total_orders 
-    FROM gold.fct_daily_sales 
+    FROM delta.`/opt/spark/work-dir/data/gold/fct_daily_sales` 
     GROUP BY order_date 
     ORDER BY order_date DESC LIMIT 30
     """
@@ -36,7 +36,7 @@ def get_daily_sales() -> List[Dict[str, Any]]:
 def get_top_customers() -> List[Dict[str, Any]]:
     query = """
     SELECT customer_id, sum(revenue) as total_spent, sum(orders) as total_orders 
-    FROM gold.fct_customer_activity 
+    FROM delta.`/opt/spark/work-dir/data/gold/fct_customer_activity` 
     GROUP BY customer_id 
     ORDER BY total_spent DESC LIMIT 10
     """
@@ -53,7 +53,7 @@ def get_top_customers() -> List[Dict[str, Any]]:
 
 @app.get("/inventory/position")
 def get_inventory_position() -> List[Dict[str, Any]]:
-    query = "SELECT * FROM gold.fct_inventory_position ORDER BY snapshot_date DESC LIMIT 50"
+    query = "SELECT * FROM delta.`/opt/spark/work-dir/data/gold/fct_inventory_position` ORDER BY latest_inventory_timestamp DESC LIMIT 50"
     try:
         with get_connection() as conn:
             with conn.cursor() as cursor:
@@ -61,8 +61,10 @@ def get_inventory_position() -> List[Dict[str, Any]]:
                 results = cursor.fetchall()
                 columns = [desc[0] for desc in cursor.description]
                 df = pd.DataFrame(results, columns=columns)
-                if 'snapshot_date' in df.columns:
-                    df['snapshot_date'] = df['snapshot_date'].astype(str)
+                if 'latest_inventory_timestamp' in df.columns:
+                    df['latest_inventory_timestamp'] = df['latest_inventory_timestamp'].astype(str)
+                if 'latest_inventory_date' in df.columns:
+                    df['latest_inventory_date'] = df['latest_inventory_date'].astype(str)
                 return df.to_dict(orient="records")
     except Exception as e:
         return [{"error": str(e)}]
