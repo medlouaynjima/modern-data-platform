@@ -2,9 +2,9 @@
 
 A production-style data engineering portfolio project for ingesting, processing, storing, and serving retail business data.
 
-The platform is built incrementally across **eleven phases**. Phases 1–7 are complete.
+The platform is built incrementally across **eleven phases**. Phases 1–9 are complete.
 
-**Done (Phases 1–7):**
+**Done (Phases 1–9):**
 
 - Apache Kafka in KRaft mode, Kafka UI, PostgreSQL, MinIO, Apicurio Schema Registry
 - Synthetic retail event producers with pre-publish contract checks
@@ -13,10 +13,10 @@ The platform is built incrementally across **eleven phases**. Phases 1–7 are c
 - dbt Gold marts for sales, customer activity, and inventory
 - Airflow orchestration for the end-to-end retail pipeline
 - JSON Schema data contracts and Great Expectations post-layer validation
+- Observability with Prometheus JMX scraping and a pre-built Grafana Pipeline Health dashboard
+- FastAPI REST serving layer and Streamlit BI dashboard backed by the Gold Delta tables
 
-**Planned (Phases 8–11):**
-- Observability (Prometheus + Grafana)
-- FastAPI + Streamlit serving layer
+**Planned (Phases 10–11):**
 - ML pipeline (forecasting, churn, recommendations)
 - Production engineering (CI/CD, integration tests, schema versioning)
 
@@ -27,6 +27,16 @@ See [docs/roadmap.md](docs/roadmap.md) for the full revised plan.
 See [docs/architecture.md](docs/architecture.md) for the system diagram and service notes.
 See [docs/runbook.md](docs/runbook.md) for local operating commands.
 
+```text
+Producer → Kafka → Schema Registry → Validation → Bronze → Silver → dbt Gold
+                                                                        ↓
+                                                          FastAPI REST API
+                                                                        ↓
+                                                        Streamlit BI Dashboard
+                                                                        ↓
+                                                      Prometheus + Grafana (Observability)
+```
+
 ## Quick Start
 
 1. Copy environment defaults:
@@ -35,7 +45,7 @@ See [docs/runbook.md](docs/runbook.md) for local operating commands.
    Copy-Item .env.example .env
    ```
 
-2. Start the platform:
+2. Start the core platform:
 
    ```powershell
    docker compose up -d
@@ -56,9 +66,18 @@ See [docs/runbook.md](docs/runbook.md) for local operating commands.
 | PostgreSQL | `localhost:5432` |
 | MinIO API | `http://localhost:9000` |
 | MinIO Console | `http://localhost:9001` |
-| Airflow UI | `http://localhost:8080` |
+| Airflow UI | `http://localhost:8082` |
+| Schema Registry | `http://localhost:8083` |
+| Prometheus | `http://localhost:9090` |
+| Grafana | `http://localhost:3000` |
+| FastAPI (Swagger UI) | `http://localhost:8000/docs` |
+| Streamlit BI Dashboard | `http://localhost:8501` |
 
-Default MinIO credentials are `minioadmin` / `minioadmin`. Default PostgreSQL credentials are in `.env.example`.
+Default credentials:
+- MinIO: `minioadmin` / `minioadmin`
+- Airflow: `admin` / `admin`
+- Grafana: `admin` / `admin`
+- PostgreSQL: see `.env.example`
 
 ## Kafka Topics
 
@@ -141,7 +160,6 @@ Trigger the full pipeline DAG:
 docker compose --profile airflow exec airflow-scheduler airflow dags trigger retail_pipeline
 ```
 
-Default Airflow credentials are `admin` / `admin`.
 See [docs/phase-6-airflow-orchestration.md](docs/phase-6-airflow-orchestration.md).
 
 ## Validate Data Quality
@@ -156,6 +174,32 @@ docker compose --profile ge up --build ge-gold
 
 See [docs/phase-7-great-expectations.md](docs/phase-7-great-expectations.md).
 
+## Observability
+
+Start Prometheus and Grafana:
+
+```powershell
+docker compose --profile monitoring up -d --build
+```
+
+- **Prometheus** at `http://localhost:9090` scrapes Kafka JMX metrics automatically.
+- **Grafana** at `http://localhost:3000` has the **Pipeline Health** dashboard pre-loaded.
+
+See [docs/phase-8-observability.md](docs/phase-8-observability.md).
+
+## Serving Layer (API + BI)
+
+Start the FastAPI REST API and Streamlit dashboard:
+
+```powershell
+docker compose --profile serving up -d --build
+```
+
+- **FastAPI Swagger UI** at `http://localhost:8000/docs` — browse and call the Gold data endpoints interactively.
+- **Streamlit BI Dashboard** at `http://localhost:8501` — interactive KPI cards, revenue trends, top customer charts, and inventory views.
+
+See [docs/phase-9-serving.md](docs/phase-9-serving.md).
+
 ## Repository Layout
 
 ```text
@@ -165,13 +209,13 @@ data/          Local Bronze, Silver, and Gold development data
 data_quality/  Great Expectations suites and validation CLI
 dbt/           Analytics engineering models
 docs/          Architecture, roadmap, and operating notes
-fastapi/       Serving API
-kafka/         Kafka configuration and topic documentation
+fastapi/       FastAPI REST serving layer
+kafka/         Kafka configuration and Dockerfile
 ml/            Forecasting, recommendation, and fraud models
 monitoring/    Prometheus and Grafana assets
 producer/      Synthetic retail data generators
 spark/         PySpark streaming and batch jobs
-streamlit/     Analytics dashboard
+streamlit/     Streamlit BI dashboard
 tests/         Unit and integration tests
 ```
 
