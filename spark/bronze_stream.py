@@ -10,6 +10,7 @@ if TYPE_CHECKING:
 
 
 DEFAULT_TOPICS = "customers,products,orders,payments,clicks,inventory"
+BRONZE_DEDUP_KEYS = ["topic", "partition", "offset"]
 
 
 @dataclass(frozen=True)
@@ -135,6 +136,29 @@ def _write_delta_batch(spark, rows: list[dict], path: str, schema, mode: str = "
     frame.write.format("delta").mode(mode).save(path)
 
 
+def _delta_table_exists(spark, path: str) -> bool:
+    from delta.tables import DeltaTable
+
+    return DeltaTable.isDeltaTable(spark, path)
+
+
+def _write_bronze_batch(spark, rows: list[dict], path: str, schema) -> int:
+    if not rows:
+        return 0
+
+    frame = spark.createDataFrame(rows, schema=schema).dropDuplicates(BRONZE_DEDUP_KEYS)
+
+    if _delta_table_exists(spark, path):
+        existing_keys = spark.read.format("delta").load(path).select(*BRONZE_DEDUP_KEYS).dropDuplicates()
+        frame = frame.join(existing_keys, on=BRONZE_DEDUP_KEYS, how="left_anti")
+
+    accepted_count = frame.count()
+    if accepted_count:
+        frame.write.format("delta").mode("append").save(path)
+
+    return accepted_count
+
+
 def build_batch_writer(spark, config: BronzeStreamConfig):
     from pyspark.sql.types import StringType, StructField, StructType
 
@@ -152,11 +176,12 @@ def build_batch_writer(spark, config: BronzeStreamConfig):
         rows = [row.asDict(recursive=True) for row in batch_df.collect()]
         valid_rows, quarantine_rows = _validate_rows(rows, registry)
 
-        _write_delta_batch(spark, valid_rows, config.bronze_path, bronze_schema)
+        accepted_count = _write_bronze_batch(spark, valid_rows, config.bronze_path, bronze_schema)
         _write_delta_batch(spark, quarantine_rows, config.quarantine_path, quarantine_schema)
 
         print(
-            f"batch {batch_id}: accepted={len(valid_rows)} "
+            f"batch {batch_id}: accepted={accepted_count} "
+            f"duplicates_skipped={len(valid_rows) - accepted_count} "
             f"quarantined={len(quarantine_rows)}"
         )
 

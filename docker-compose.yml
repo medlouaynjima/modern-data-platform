@@ -498,6 +498,10 @@ services:
     depends_on:
       spark-thrift:
         condition: service_healthy
+    environment:
+      ML_OUTPUT_PATH: /opt/spark/work-dir/data/ml
+    volumes:
+      - ${MDP_PROJECT_DIR:-.}/data:/opt/spark/work-dir/data
     ports:
       - "8000:8000"
     restart: unless-stopped
@@ -511,6 +515,23 @@ services:
     ports:
       - "8501:8501"
     restart: unless-stopped
+
+  ml-train:
+    build:
+      context: ./ml
+      dockerfile: Dockerfile
+    container_name: mdp-ml-train
+    profiles: ["ml"]
+    environment:
+      GOLD_PATH: /opt/spark/work-dir/data/gold/fct_daily_sales
+      GOLD_PATH_CUSTOMERS: /opt/spark/work-dir/data/gold/fct_customer_activity
+      ML_OUTPUT_PATH: /opt/spark/work-dir/data/ml
+      FORECAST_DAYS: "30"
+      CHURN_DAYS_THRESHOLD: "14"
+      RECOMMENDATION_TOP_N: "5"
+    volumes:
+      - ${MDP_PROJECT_DIR:-.}/data:/opt/spark/work-dir/data
+    restart: "no"
 
 volumes:
   postgres_data:

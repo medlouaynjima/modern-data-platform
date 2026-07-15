@@ -2,9 +2,9 @@
 
 A production-style data engineering portfolio project for ingesting, processing, storing, and serving retail business data.
 
-The platform is built incrementally across **eleven phases**. Phases 1–9 are complete.
+The platform is built incrementally across **eleven phases**. Phases 1–10 are complete.
 
-**Done (Phases 1–9):**
+**Done (Phases 1–10):**
 
 - Apache Kafka in KRaft mode, Kafka UI, PostgreSQL, MinIO, Apicurio Schema Registry
 - Synthetic retail event producers with pre-publish contract checks
@@ -15,9 +15,9 @@ The platform is built incrementally across **eleven phases**. Phases 1–9 are c
 - JSON Schema data contracts and Great Expectations post-layer validation
 - Observability with Prometheus JMX scraping and a pre-built Grafana Pipeline Health dashboard
 - FastAPI REST serving layer and Streamlit BI dashboard backed by the Gold Delta tables
+- ML layer: Prophet sales forecasting, XGBoost churn prediction, Implicit ALS recommendations
 
-**Planned (Phases 10–11):**
-- ML pipeline (forecasting, churn, recommendations)
+**Planned (Phase 11):**
 - Production engineering (CI/CD, integration tests, schema versioning)
 
 See [docs/roadmap.md](docs/roadmap.md) for the full revised plan.
@@ -30,10 +30,10 @@ See [docs/runbook.md](docs/runbook.md) for local operating commands.
 ```text
 Producer → Kafka → Schema Registry → Validation → Bronze → Silver → dbt Gold
                                                                         ↓
-                                                          FastAPI REST API
-                                                                        ↓
-                                                        Streamlit BI Dashboard
-                                                                        ↓
+                                                          FastAPI REST API ←── ML Predictions
+                                                                        ↓             ↑
+                                                        Streamlit BI Dashboard   ML Training
+                                                                        ↓        (Prophet/XGB/ALS)
                                                       Prometheus + Grafana (Observability)
 ```
 
@@ -72,6 +72,7 @@ Producer → Kafka → Schema Registry → Validation → Bronze → Silver → 
 | Grafana | `http://localhost:3000` |
 | FastAPI (Swagger UI) | `http://localhost:8000/docs` |
 | Streamlit BI Dashboard | `http://localhost:8501` |
+| ML Predictions (FastAPI) | `http://localhost:8000/ml/forecast`, `/ml/churn`, `/ml/recommendations/{id}` |
 
 Default credentials:
 - MinIO: `minioadmin` / `minioadmin`
@@ -199,6 +200,21 @@ docker compose --profile serving up -d --build
 - **Streamlit BI Dashboard** at `http://localhost:8501` — interactive KPI cards, revenue trends, top customer charts, and inventory views.
 
 See [docs/phase-9-serving.md](docs/phase-9-serving.md).
+
+## ML Layer (Forecasting, Churn, Recommendations)
+
+Train all three ML models against the Gold tables:
+
+```powershell
+docker compose --profile ml up --build ml-train
+```
+
+- **Prophet** forecast written to `data/ml/forecasts/sales_forecast.parquet`
+- **XGBoost** churn scores written to `data/ml/predictions/churn_scores.parquet`
+- **ALS** recommendations written to `data/ml/predictions/recommendations.parquet`
+- Browse ML endpoints at `http://localhost:8000/docs` and the **🤖 ML Insights** tab in Streamlit
+
+See [docs/phase-10-ml.md](docs/phase-10-ml.md).
 
 ## Repository Layout
 

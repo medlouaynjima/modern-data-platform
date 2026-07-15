@@ -92,6 +92,12 @@ with DAG(
         execution_timeout=timedelta(minutes=15),
     )
 
+    ml_training = BashOperator(
+        task_id="ml_training",
+        bash_command=compose_job("ml", "ml-train"),
+        execution_timeout=timedelta(minutes=30),
+    )
+
     (
         produce_events
         >> inject_quarantine_demo
@@ -102,4 +108,5 @@ with DAG(
         >> wait_for_spark_thrift
         >> dbt_gold_build
         >> validate_gold
+        >> ml_training
     )

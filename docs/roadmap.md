@@ -15,7 +15,7 @@ Each phase should finish with working services, focused tests, and documentation
 | 7 | Data contracts + validation (schema registry, pre-Bronze checks) | Done |
 | 8 | Observability layer (Prometheus, Grafana, pipeline metrics) | Done |
 | 9 | Serving layer (FastAPI + Streamlit) | Done |
-| 10 | ML layer (forecasting, churn, recommendations) | Planned |
+| 10 | ML layer (forecasting, churn, recommendations) | Done |
 | 11 | Production engineering (CI/CD, integration tests, schema versioning) | Planned |
 
 ## Phase Details

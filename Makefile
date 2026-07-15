@@ -1,4 +1,4 @@
-|.PHONY: up down ps logs config lint test produce dry-run bronze silver gold dbt-debug airflow pipeline validate-bronze validate-silver validate-gold validate-silver validate-gold
+.PHONY: up down ps logs config lint test produce dry-run bronze silver gold dbt-debug airflow pipeline validate-bronze validate-silver validate-gold serving ml-train
 
 up:
 	docker compose up -d
@@ -53,3 +53,9 @@ validate-silver:
 
 validate-gold:
 	docker compose --profile ge up --build ge-gold
+
+serving:
+	docker compose --profile serving up -d --build
+
+ml-train:
+	docker compose --profile ml up --build ml-train

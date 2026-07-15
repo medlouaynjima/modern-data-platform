@@ -1,74 +1,172 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
+from fastapi.encoders import jsonable_encoder
 from impala.dbapi import connect
 import pandas as pd
+import os
+from pathlib import Path
 from typing import List, Dict, Any
 
-app = FastAPI(title="Modern Data Platform API")
+app = FastAPI(
+    title="Modern Data Platform API",
+    description="REST API serving Gold Delta Lake tables and ML predictions.",
+    version="2.0.0",
+)
+
+# ── Connection helpers ────────────────────────────────────────────────────────
 
 def get_connection():
-    # Connect to Spark Thrift Server
-    return connect(host='spark-thrift', port=10000, auth_mechanism='PLAIN')
+    """Connect to the Spark Thrift Server."""
+    return connect(host="spark-thrift", port=10000, auth_mechanism="PLAIN")
 
-@app.get("/sales/daily")
+
+def _sql_query(query: str) -> List[Dict[str, Any]]:
+    """Execute a SQL query via Thrift and return list of dicts."""
+    with get_connection() as conn:
+        with conn.cursor() as cursor:
+            cursor.execute(query)
+            results = cursor.fetchall()
+            columns = [desc[0] for desc in cursor.description]
+            df = pd.DataFrame(results, columns=columns)
+            # Coerce any date/timestamp columns to strings for JSON serialisation
+            for col in df.select_dtypes(include=["datetime64[ns]", "object"]).columns:
+                df[col] = df[col].astype(str)
+            return df.to_dict(orient="records")
+
+
+# ── ML helper ─────────────────────────────────────────────────────────────────
+
+ML_PATH = Path(os.getenv("ML_OUTPUT_PATH", "/opt/spark/work-dir/data/ml"))
+
+
+def _read_parquet(relative_path: str) -> pd.DataFrame:
+    """Read a parquet file from the ML output directory."""
+    full_path = ML_PATH / relative_path
+    if not full_path.exists():
+        raise FileNotFoundError(
+            f"ML output not found at {full_path}. "
+            "Run 'docker compose --profile ml up ml-train' first."
+        )
+    return pd.read_parquet(full_path)
+
+
+def _records(df: pd.DataFrame) -> List[Dict[str, Any]]:
+    """Return JSON-safe records from a pandas DataFrame."""
+    clean_df = df.where(pd.notna(df), None)
+    return jsonable_encoder(clean_df.to_dict(orient="records"))
+
+
+# ── Gold data endpoints ───────────────────────────────────────────────────────
+
+@app.get("/sales/daily", tags=["Gold Data"])
 def get_daily_sales() -> List[Dict[str, Any]]:
+    """Last 30 days of daily aggregated sales revenue and order counts."""
     query = """
-    SELECT order_date as date, 
-           sum(gross_revenue) as total_sales_amount, 
-           sum(order_count) as total_orders 
-    FROM delta.`/opt/spark/work-dir/data/gold/fct_daily_sales` 
-    GROUP BY order_date 
+    SELECT order_date as date,
+           sum(gross_revenue) as total_sales_amount,
+           sum(order_count) as total_orders
+    FROM delta.`/opt/spark/work-dir/data/gold/fct_daily_sales`
+    GROUP BY order_date
     ORDER BY order_date DESC LIMIT 30
     """
     try:
-        with get_connection() as conn:
-            with conn.cursor() as cursor:
-                cursor.execute(query)
-                results = cursor.fetchall()
-                columns = [desc[0] for desc in cursor.description]
-                df = pd.DataFrame(results, columns=columns)
-                if 'date' in df.columns:
-                    df['date'] = df['date'].astype(str)
-                return df.to_dict(orient="records")
+        return _sql_query(query)
     except Exception as e:
         return [{"error": str(e)}]
 
-@app.get("/customers/top")
+
+@app.get("/customers/top", tags=["Gold Data"])
 def get_top_customers() -> List[Dict[str, Any]]:
+    """Top 10 customers by lifetime revenue."""
     query = """
-    SELECT customer_id, sum(revenue) as total_spent, sum(orders) as total_orders 
-    FROM delta.`/opt/spark/work-dir/data/gold/fct_customer_activity` 
-    GROUP BY customer_id 
+    SELECT customer_id, sum(revenue) as total_spent, sum(orders) as total_orders
+    FROM delta.`/opt/spark/work-dir/data/gold/fct_customer_activity`
+    GROUP BY customer_id
     ORDER BY total_spent DESC LIMIT 10
     """
     try:
-        with get_connection() as conn:
-            with conn.cursor() as cursor:
-                cursor.execute(query)
-                results = cursor.fetchall()
-                columns = [desc[0] for desc in cursor.description]
-                df = pd.DataFrame(results, columns=columns)
-                return df.to_dict(orient="records")
+        return _sql_query(query)
     except Exception as e:
         return [{"error": str(e)}]
 
-@app.get("/inventory/position")
+
+@app.get("/inventory/position", tags=["Gold Data"])
 def get_inventory_position() -> List[Dict[str, Any]]:
-    query = "SELECT * FROM delta.`/opt/spark/work-dir/data/gold/fct_inventory_position` ORDER BY latest_inventory_timestamp DESC LIMIT 50"
+    """Latest 50 inventory snapshot positions."""
+    query = (
+        "SELECT * FROM delta.`/opt/spark/work-dir/data/gold/fct_inventory_position` "
+        "ORDER BY latest_inventory_timestamp DESC LIMIT 50"
+    )
     try:
-        with get_connection() as conn:
-            with conn.cursor() as cursor:
-                cursor.execute(query)
-                results = cursor.fetchall()
-                columns = [desc[0] for desc in cursor.description]
-                df = pd.DataFrame(results, columns=columns)
-                if 'latest_inventory_timestamp' in df.columns:
-                    df['latest_inventory_timestamp'] = df['latest_inventory_timestamp'].astype(str)
-                if 'latest_inventory_date' in df.columns:
-                    df['latest_inventory_date'] = df['latest_inventory_date'].astype(str)
-                return df.to_dict(orient="records")
+        return _sql_query(query)
     except Exception as e:
         return [{"error": str(e)}]
 
-@app.get("/health")
+
+# ── ML prediction endpoints ───────────────────────────────────────────────────
+
+@app.get("/ml/forecast", tags=["ML Predictions"])
+def get_sales_forecast() -> List[Dict[str, Any]]:
+    """
+    30-day sales revenue forecast generated by the Prophet model.
+
+    Returns historical actuals + future predictions with confidence intervals.
+    Run `docker compose --profile ml up ml-train` to generate predictions.
+    """
+    try:
+        df = _read_parquet("forecasts/sales_forecast.parquet")
+        return _records(df)
+    except FileNotFoundError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/ml/churn", tags=["ML Predictions"])
+def get_churn_scores(limit: int = 50) -> List[Dict[str, Any]]:
+    """
+    Per-customer churn probability scores from the XGBoost model.
+
+    Returns customers sorted by churn risk (highest first).
+    Query param `limit` controls how many to return (default 50).
+    """
+    try:
+        df = _read_parquet("predictions/churn_scores.parquet")
+        df = df.sort_values("churn_score", ascending=False).head(limit)
+        return _records(df)
+    except FileNotFoundError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/ml/recommendations/{customer_id}", tags=["ML Predictions"])
+def get_recommendations(customer_id: str) -> List[Dict[str, Any]]:
+    """
+    Top-5 product recommendations for a specific customer (Implicit ALS).
+
+    Returns products ranked by recommendation score.
+    """
+    try:
+        df = _read_parquet("predictions/recommendations.parquet")
+        customer_recs = df[df["customer_id"].astype(str) == str(customer_id)].sort_values("rank")
+        if customer_recs.empty:
+            raise HTTPException(
+                status_code=404,
+                detail=f"No recommendations found for customer '{customer_id}'. "
+                       "The customer may not exist or predictions haven't been generated yet.",
+            )
+        return _records(customer_recs)
+    except HTTPException:
+        raise
+    except FileNotFoundError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ── Health ────────────────────────────────────────────────────────────────────
+
+@app.get("/health", tags=["Health"])
 def health_check():
+    """Service liveness check."""
     return {"status": "ok"}
