@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Modern Data Platform — Pipeline Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #09090f;
+      --surface: #111118;
+      --surface2: #16161f;
+      --border: #1f1f2e;
+      --text: #e8e8f0;
+      --muted: #6b6b80;
+      --kafka: #7c3aed;
+      --bronze-glow: #f59e0b;
+      --silver-glow: #94a3b8;
+      --gold-glow: #eab308;
+      --ml-glow: #14b8a6;
+      --api-glow: #60a5fa;
+    }
+
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+    body::before {
+      content: '';
+      position: fixed; inset: 0;
+      background-image:
+        linear-gradient(rgba(124,58,237,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(124,58,237,0.03) 1px, transparent 1px);
+      background-size: 40px 40px;
+      pointer-events: none; z-index: 0;
+    }
+
+    .container { max-width: 1280px; margin: 0 auto; padding: 0 24px; position: relative; z-index: 1; }
+
+    header { padding: 48px 0 24px; text-align: center; }
+    .logo-row { display: flex; align-items: center; justify-content: center; gap: 12px; margin-bottom: 20px; }
+    .logo-icon { width: 48px; height: 48px; background: linear-gradient(135deg, #7c3aed, #0f766e); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 24px; }
+    .logo-text { font-size: 15px; font-weight: 600; color: var(--muted); letter-spacing: 0.1em; text-transform: uppercase; }
+
+    h1 { font-size: clamp(2rem, 5vw, 3.5rem); font-weight: 900; line-height: 1.1; background: linear-gradient(135deg, #e8e8f0 30%, #7c3aed 70%, #eab308); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; margin-bottom: 16px; }
+    .subtitle { font-size: 18px; color: var(--muted); max-width: 600px; margin: 0 auto 40px; line-height: 1.6; }
+
+    /* Ticker */
+    .ticker-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 12px 20px; margin-bottom: 64px; overflow: hidden; position: relative; }
+    .ticker-label { position: absolute; left: 20px; top: 50%; transform: translateY(-50%); font-size: 11px; font-weight: 700; letter-spacing: 0.1em; color: #4ade80; text-transform: uppercase; z-index: 2; background: var(--surface); padding-right: 12px; }
+    .ticker-inner { display: flex; gap: 40px; animation: ticker 30s linear infinite; white-space: nowrap; padding-left: 110px; }
+    .ticker-inner:hover { animation-play-state: paused; }
+    .tick-item { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--muted); display: flex; align-items: center; gap: 8px; }
+    .tick-dot { width: 6px; height: 6px; border-radius: 50%; }
+    .tick-dot.kafka { background: #a78bfa; box-shadow: 0 0 6px #a78bfa; }
+    .tick-dot.bronze { background: var(--bronze-glow); box-shadow: 0 0 6px var(--bronze-glow); }
+    .tick-dot.silver { background: var(--silver-glow); box-shadow: 0 0 6px var(--silver-glow); }
+    .tick-dot.gold { background: var(--gold-glow); box-shadow: 0 0 6px var(--gold-glow); }
+    @keyframes ticker { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+
+    .section-label { text-align: center; margin-bottom: 48px; }
+    .section-label h2 { font-size: 28px; font-weight: 800; margin-bottom: 8px; }
+    .section-label p { color: var(--muted); font-size: 16px; }
+
+    /* Pipeline */
+    .pipeline { display: flex; align-items: stretch; gap: 0; margin-bottom: 80px; }
+    .pipeline-stage { flex: 1; }
+
+    .stage-card { background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 28px 24px; height: 100%; position: relative; overflow: hidden; transition: transform 0.3s ease, box-shadow 0.3s ease; cursor: default; }
+    .stage-card:hover { transform: translateY(-4px); }
+    .stage-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; border-radius: 20px 20px 0 0; }
+    .stage-card.kafka::before   { background: linear-gradient(90deg, #7c3aed, #a855f7); }
+    .stage-card.bronze::before  { background: linear-gradient(90deg, #b45309, #f59e0b); }
+    .stage-card.silver::before  { background: linear-gradient(90deg, #475569, #94a3b8); }
+    .stage-card.gold::before    { background: linear-gradient(90deg, #854d0e, #eab308); }
+    .stage-card.ml::before      { background: linear-gradient(90deg, #0f766e, #14b8a6); }
+    .stage-card.api::before     { background: linear-gradient(90deg, #1d4ed8, #60a5fa); }
+    .stage-card.kafka:hover  { box-shadow: 0 20px 40px rgba(124,58,237,0.15); }
+    .stage-card.bronze:hover { box-shadow: 0 20px 40px rgba(245,158,11,0.12); }
+    .stage-card.silver:hover { box-shadow: 0 20px 40px rgba(148,163,184,0.10); }
+    .stage-card.gold:hover   { box-shadow: 0 20px 40px rgba(234,179,8,0.15); }
+    .stage-card.ml:hover     { box-shadow: 0 20px 40px rgba(20,184,166,0.15); }
+    .stage-card.api:hover    { box-shadow: 0 20px 40px rgba(96,165,250,0.15); }
+
+    .stage-icon { font-size: 32px; margin-bottom: 12px; }
+    .stage-badge { display: inline-flex; align-items: center; gap: 6px; font-size: 10px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; padding: 4px 10px; border-radius: 20px; margin-bottom: 14px; }
+    .badge-dot { width: 6px; height: 6px; border-radius: 50%; animation: pulse 2s ease-in-out infinite; }
+    @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.5;transform:scale(.8)} }
+    .stage-card.kafka  .stage-badge { background: rgba(124,58,237,.15); color: #a78bfa; }
+    .stage-card.kafka  .badge-dot   { background: #a78bfa; }
+    .stage-card.bronze .stage-badge { background: rgba(245,158,11,.15); color: var(--bronze-glow); }
+    .stage-card.bronze .badge-dot   { background: var(--bronze-glow); }
+    .stage-card.silver .stage-badge { background: rgba(148,163,184,.15); color: var(--silver-glow); }
+    .stage-card.silver .badge-dot   { background: var(--silver-glow); }
+    .stage-card.gold   .stage-badge { background: rgba(234,179,8,.15); color: var(--gold-glow); }
+    .stage-card.gold   .badge-dot   { background: var(--gold-glow); }
+    .stage-card.ml     .stage-badge { background: rgba(20,184,166,.15); color: var(--ml-glow); }
+    .stage-card.ml     .badge-dot   { background: var(--ml-glow); }
+    .stage-card.api    .stage-badge { background: rgba(96,165,250,.15); color: var(--api-glow); }
+    .stage-card.api    .badge-dot   { background: var(--api-glow); }
+
+    .stage-title { font-size: 18px; font-weight: 700; margin-bottom: 8px; }
+    .stage-desc { font-size: 13px; color: var(--muted); line-height: 1.6; margin-bottom: 16px; }
+    .stage-detail { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; }
+    .detail-label { font-size: 10px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; }
+    .detail-item { display: flex; align-items: flex-start; gap: 8px; font-size: 12px; color: #a0a0b8; line-height: 1.5; margin-bottom: 4px; }
+    .detail-item::before { content: '→'; flex-shrink: 0; color: var(--muted); }
+
+    .flow-arrow { display: flex; flex-direction: column; align-items: center; justify-content: center; width: 40px; flex-shrink: 0; gap: 4px; }
+    .flow-line { width: 2px; flex: 1; background: linear-gradient(180deg,transparent,var(--border),transparent); position: relative; overflow: hidden; }
+    .flow-line::after { content: ''; position: absolute; top: -100%; left: 0; right: 0; height: 100%; background: linear-gradient(180deg,transparent,rgba(124,58,237,.6),transparent); animation: flow 2s linear infinite; }
+    @keyframes flow { from{top:-100%} to{top:100%} }
+    .flow-chevron { color: var(--muted); font-size: 14px; }
+
+    /* Data journey */
+    .data-journey { margin-bottom: 80px; }
+    .journey-tabs { display: flex; gap: 8px; margin-bottom: 24px; flex-wrap: wrap; }
+    .tab-btn { padding: 8px 20px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface); color: var(--muted); font-size: 13px; font-weight: 600; cursor: pointer; transition: all .2s; }
+    .tab-btn:hover { border-color: #333; color: var(--text); }
+    .tab-btn.active.bronze { background: rgba(245,158,11,.15); border-color: var(--bronze-glow); color: var(--bronze-glow); }
+    .tab-btn.active.silver { background: rgba(148,163,184,.15); border-color: var(--silver-glow); color: var(--silver-glow); }
+    .tab-btn.active.gold   { background: rgba(234,179,8,.15);   border-color: var(--gold-glow);   color: var(--gold-glow); }
+    .tab-panel { display: none; }
+    .tab-panel.active { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+
+    .data-box { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; }
+    .data-box-header { padding: 14px 18px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 10px; }
+    .data-box-header span { font-size: 13px; font-weight: 600; }
+    .data-box-header small { font-size: 11px; color: var(--muted); margin-left: auto; }
+    .data-code { font-family: 'JetBrains Mono', monospace; font-size: 11.5px; line-height: 1.7; padding: 18px; color: #c4c4d4; overflow-x: auto; }
+    .key { color: #7dd3fc; }
+    .val-str { color: #86efac; }
+    .val-num { color: #fda4af; }
+    .val-ts  { color: #fde68a; }
+    .comment { color: #4b5563; }
+
+    .transform-note { background: var(--surface2); border: 1px solid var(--border); border-left: 3px solid; border-radius: 10px; padding: 14px 16px; font-size: 13px; color: var(--muted); line-height: 1.6; grid-column: 1 / -1; }
+    .transform-note.bronze { border-left-color: var(--bronze-glow); }
+    .transform-note.silver { border-left-color: var(--silver-glow); }
+    .transform-note.gold   { border-left-color: var(--gold-glow); }
+    .transform-note strong { color: var(--text); }
+
+    /* Metrics */
+    .metrics-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 80px; }
+    .metric-card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 24px 20px; text-align: center; transition: transform .3s; }
+    .metric-card:hover { transform: translateY(-3px); }
+    .metric-icon { font-size: 28px; margin-bottom: 10px; }
+    .metric-value { font-size: 32px; font-weight: 900; line-height: 1; margin-bottom: 6px; }
+    .metric-label { font-size: 12px; color: var(--muted); font-weight: 500; }
+
+    /* Services */
+    .services-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; margin-bottom: 80px; }
+    .service-card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 20px; display: flex; gap: 14px; align-items: flex-start; transition: transform .3s, box-shadow .3s; }
+    .service-card:hover { transform: translateY(-3px); box-shadow: 0 12px 30px rgba(0,0,0,.3); }
+    .service-port { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 6px 10px; font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 500; color: var(--muted); flex-shrink: 0; min-width: 60px; text-align: center; }
+    .service-info h4 { font-size: 14px; font-weight: 600; margin-bottom: 4px; }
+    .service-info p { font-size: 12px; color: var(--muted); line-height: 1.5; }
+    .service-status { display: inline-flex; align-items: center; gap: 5px; font-size: 10px; font-weight: 600; color: #4ade80; margin-top: 6px; }
+    .service-status::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: #4ade80; box-shadow: 0 0 8px #4ade80; animation: pulse 2s ease-in-out infinite; }
+
+    footer { border-top: 1px solid var(--border); padding: 32px 0; text-align: center; color: var(--muted); font-size: 13px; }
+
+    @media (max-width: 900px) {
+      .pipeline { flex-direction: column; }
+      .flow-arrow { flex-direction: row; width: 100%; height: 32px; }
+      .flow-line { width: 100%; height: 2px; }
+      .tab-panel.active { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <div class="logo-row">
+      <div class="logo-icon">⚡</div>
+      <span class="logo-text">Modern Data Platform</span>
+    </div>
+    <h1>From Raw Events<br/>to Business Intelligence</h1>
+    <p class="subtitle">See how raw Kafka events are refined — step by step — into clean data, business insights, and AI predictions.</p>
+  </header>
+
+  <div class="ticker-wrap">
+    <span class="ticker-label">● LIVE EVENTS</span>
+    <div class="ticker-inner" id="ticker"></div>
+  </div>
+
+  <div class="section-label">
+    <h2>The Data Refinement Pipeline</h2>
+    <p>Think of it like refining crude oil — each stage purifies and adds value</p>
+  </div>
+
+  <div class="pipeline">
+    <div class="pipeline-stage">
+      <div class="stage-card kafka">
+        <div class="stage-icon">📡</div>
+        <div class="stage-badge"><span class="badge-dot"></span>Live Stream</div>
+        <div class="stage-title">Event Stream</div>
+        <div class="stage-desc">Raw business events arrive continuously from your store — orders, clicks, payments, inventory changes — as fast as they happen.</div>
+        <div class="stage-detail">
+          <div class="detail-label">What comes in</div>
+          <div class="detail-item">Customer placed an order</div>
+          <div class="detail-item">Product page was clicked</div>
+          <div class="detail-item">Payment was processed</div>
+          <div class="detail-item">Inventory was updated</div>
+        </div>
+      </div>
+    </div>
+    <div class="flow-arrow"><div class="flow-line"></div><span class="flow-chevron">▼</span><div class="flow-line"></div></div>
+    <div class="pipeline-stage">
+      <div class="stage-card bronze">
+        <div class="stage-icon">🥉</div>
+        <div class="stage-badge"><span class="badge-dot"></span>Bronze Layer</div>
+        <div class="stage-title">Raw Landing Zone</div>
+        <div class="stage-desc">Every event is captured as-is and stored permanently. Invalid events are quarantined — like a quality control gate on arrival.</div>
+        <div class="stage-detail">
+          <div class="detail-label">What happens here</div>
+          <div class="detail-item">Every event is saved forever</div>
+          <div class="detail-item">Duplicates are detected &amp; removed</div>
+          <div class="detail-item">Bad data goes to quarantine</div>
+          <div class="detail-item">Full audit trail preserved</div>
+        </div>
+      </div>
+    </div>
+    <div class="flow-arrow"><div class="flow-line"></div><span class="flow-chevron">▼</span><div class="flow-line"></div></div>
+    <div class="pipeline-stage">
+      <div class="stage-card silver">
+        <div class="stage-icon">🥈</div>
+        <div class="stage-badge"><span class="badge-dot"></span>Silver Layer</div>
+        <div class="stage-title">Clean &amp; Typed Data</div>
+        <div class="stage-desc">Raw JSON blobs become proper structured tables. Every field has the right type, events are deduplicated, and data is ready to query.</div>
+        <div class="stage-detail">
+          <div class="detail-label">What changes here</div>
+          <div class="detail-item">JSON → typed table columns</div>
+          <div class="detail-item">Timestamps normalized to UTC</div>
+          <div class="detail-item">One table per topic (orders, etc.)</div>
+          <div class="detail-item">Source lineage columns added</div>
+        </div>
+      </div>
+    </div>
+    <div class="flow-arrow"><div class="flow-line"></div><span class="flow-chevron">▼</span><div class="flow-line"></div></div>
+    <div class="pipeline-stage">
+      <div class="stage-card gold">
+        <div class="stage-icon">🥇</div>
+        <div class="stage-badge"><span class="badge-dot"></span>Gold Layer</div>
+        <div class="stage-title">Business Insights</div>
+        <div class="stage-desc">Clean data is joined, aggregated, and shaped into business-ready reports. This is what analysts, dashboards and APIs consume directly.</div>
+        <div class="stage-detail">
+          <div class="detail-label">Ready-made answers</div>
+          <div class="detail-item">Daily revenue by country</div>
+          <div class="detail-item">Top customers by lifetime value</div>
+          <div class="detail-item">Current inventory positions</div>
+          <div class="detail-item">Product profit margins</div>
+        </div>
+      </div>
+    </div>
+    <div class="flow-arrow"><div class="flow-line"></div><span class="flow-chevron">▼</span><div class="flow-line"></div></div>
+    <div class="pipeline-stage">
+      <div class="stage-card ml">
+        <div class="stage-icon">🤖</div>
+        <div class="stage-badge"><span class="badge-dot"></span>AI / ML</div>
+        <div class="stage-title">Predictions</div>
+        <div class="stage-desc">Machine learning models train on Gold data and generate forward-looking intelligence: who will churn, what to recommend, future revenue.</div>
+        <div class="stage-detail">
+          <div class="detail-label">AI outputs</div>
+          <div class="detail-item">Churn risk scores per customer</div>
+          <div class="detail-item">Product recommendations</div>
+          <div class="detail-item">30-day revenue forecast</div>
+          <div class="detail-item">Customer risk segments</div>
+        </div>
+      </div>
+    </div>
+    <div class="flow-arrow"><div class="flow-line"></div><span class="flow-chevron">▼</span><div class="flow-line"></div></div>
+    <div class="pipeline-stage">
+      <div class="stage-card api">
+        <div class="stage-icon">🌐</div>
+        <div class="stage-badge"><span class="badge-dot"></span>Live API</div>
+        <div class="stage-title">REST API</div>
+        <div class="stage-desc">Everything is served via a fast REST API. Any app, dashboard, or third-party tool can query insights and predictions in real time.</div>
+        <div class="stage-detail">
+          <div class="detail-label">Available endpoints</div>
+          <div class="detail-item">GET /sales/daily</div>
+          <div class="detail-item">GET /ml/churn</div>
+          <div class="detail-item">GET /ml/forecast</div>
+          <div class="detail-item">GET /ml/recommendations/:id</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- DATA JOURNEY -->
+  <div class="data-journey">
+    <div class="section-label">
+      <h2>What Does the Same Order Look Like at Each Stage?</h2>
+      <p>Follow one customer order through the entire pipeline</p>
+    </div>
+    <div class="journey-tabs">
+      <button class="tab-btn bronze active" onclick="switchTab('bronze',this)">🥉 Bronze — Raw capture</button>
+      <button class="tab-btn silver"        onclick="switchTab('silver',this)">🥈 Silver — Cleaned</button>
+      <button class="tab-btn gold"          onclick="switchTab('gold',this)">🥇 Gold — Business insight</button>
+    </div>
+
+    <div class="tab-panel bronze active" id="tab-bronze">
+      <div class="transform-note bronze"><strong>🥉 Bronze:</strong> The event arrives exactly as the producer sent it — a raw JSON string inside a Kafka message. We save everything including Kafka metadata. No transformation, no judgment. <em>If the data was wrong when sent, Bronze preserves that too.</em></div>
+      <div class="data-box">
+        <div class="data-box-header"><span>📬 Kafka message received</span><small>topic: orders | offset: 8421</small></div>
+        <div class="data-code">
+<span class="comment">// The raw message from the Kafka broker</span>
+{
+  <span class="key">"topic"</span>:          <span class="val-str">"orders"</span>,
+  <span class="key">"partition"</span>:      <span class="val-num">1</span>,
+  <span class="key">"offset"</span>:         <span class="val-num">8421</span>,
+  <span class="key">"kafka_timestamp"</span>: <span class="val-ts">"2025-06-12T14:23:01Z"</span>,
+  <span class="key">"event_key"</span>:      <span class="val-str">"order-10847"</span>,
+  <span class="key">"event_payload"</span>:  <span class="val-str">"{\"event_id\":\"a1b2c3\",\"order_id\":10847,
+                     \"customer_id\":42,\"product_id\":115,
+                     \"quantity\":2,\"price\":89.99,
+                     \"total_amount\":179.98,\"country\":\"France\",
+                     \"channel\":\"web\"}"</span>,
+  <span class="key">"ingested_at"</span>:    <span class="val-ts">"2025-06-12T14:23:02.441Z"</span>,
+  <span class="key">"ingest_date"</span>:    <span class="val-ts">"2025-06-12"</span>
+}
+        </div>
+      </div>
+      <div class="data-box">
+        <div class="data-box-header"><span>📦 Stored in Bronze Delta Lake</span><small>data/bronze/events/</small></div>
+        <div class="data-code">
+<span class="comment">// Saved exactly as above — no changes made
+// Quarantine check:  ✅ passed (valid JSON + schema OK)
+// Dedup check:       ✅ new offset, accepted
+// Total bronze rows: 84,219 across all topics</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="tab-panel silver" id="tab-silver">
+      <div class="transform-note silver"><strong>🥈 Silver:</strong> The JSON payload is parsed and each field gets the correct data type. The messy string becomes a proper structured table row you can actually query with SQL. Invalid or duplicate events are dropped here.</div>
+      <div class="data-box">
+        <div class="data-box-header"><span>🔧 After parsing &amp; typing</span><small>data/silver/orders/ (partitioned by date)</small></div>
+        <div class="data-code">
+<span class="comment">// JSON string is gone — now proper typed columns</span>
+{
+  <span class="key">"event_id"</span>:          <span class="val-str">"a1b2c3"</span>,
+  <span class="key">"order_id"</span>:          <span class="val-num">10847</span>,       <span class="comment">// BIGINT</span>
+  <span class="key">"customer_id"</span>:       <span class="val-num">42</span>,          <span class="comment">// BIGINT</span>
+  <span class="key">"product_id"</span>:        <span class="val-num">115</span>,         <span class="comment">// BIGINT</span>
+  <span class="key">"quantity"</span>:          <span class="val-num">2</span>,           <span class="comment">// INTEGER</span>
+  <span class="key">"unit_price"</span>:        <span class="val-num">89.99</span>,       <span class="comment">// DOUBLE</span>
+  <span class="key">"total_amount"</span>:      <span class="val-num">179.98</span>,      <span class="comment">// DOUBLE</span>
+  <span class="key">"country"</span>:           <span class="val-str">"France"</span>,
+  <span class="key">"channel"</span>:           <span class="val-str">"web"</span>,
+  <span class="key">"event_timestamp"</span>:   <span class="val-ts">2025-06-12T14:22:58</span>,  <span class="comment">// TIMESTAMP</span>
+  <span class="key">"event_date"</span>:        <span class="val-ts">2025-06-12</span>,  <span class="comment">// DATE (partition key)</span>
+  <span class="key">"source_topic"</span>:      <span class="val-str">"orders"</span>,
+  <span class="key">"bronze_ingested_at"</span>: <span class="val-ts">2025-06-12T14:23:02</span>
+}
+        </div>
+      </div>
+      <div class="data-box">
+        <div class="data-box-header"><span>✅ What was gained vs Bronze</span></div>
+        <div class="data-code">
+<span class="comment">// Before Silver:</span>
+event_payload = <span class="val-str">"{ a 2kb unreadable JSON string }"</span>
+
+<span class="comment">// After Silver:</span>
+order_id      = <span class="val-num">10847</span>        <span class="comment">// can now JOIN, filter</span>
+total_amount  = <span class="val-num">179.98</span>       <span class="comment">// can now SUM()</span>
+event_date    = <span class="val-ts">2025-06-12</span>   <span class="comment">// fast partition pruning</span>
+
+<span class="comment">// Written to silver/orders:   12,840 rows
+// Dropped (duplicates):           38
+// Dropped (null event_id):         2</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="tab-panel gold" id="tab-gold">
+      <div class="transform-note gold"><strong>🥇 Gold:</strong> Multiple Silver tables are joined together and aggregated into business-ready facts. This is the final answer — no more raw data, just the numbers your business actually needs to make decisions.</div>
+      <div class="data-box">
+        <div class="data-box-header"><span>📊 fct_daily_sales — France, 2025-06-12</span><small>data/gold/fct_daily_sales/</small></div>
+        <div class="data-code">
+<span class="comment">// orders + products + payments joined &amp; aggregated
+// One row = one day × product × country × channel</span>
+{
+  <span class="key">"order_date"</span>:        <span class="val-ts">2025-06-12</span>,
+  <span class="key">"product_name"</span>:      <span class="val-str">"Electronics Product 115"</span>,
+  <span class="key">"sku"</span>:               <span class="val-str">"SKU-00115"</span>,
+  <span class="key">"category"</span>:          <span class="val-str">"Electronics"</span>,
+  <span class="key">"country"</span>:           <span class="val-str">"France"</span>,
+  <span class="key">"channel"</span>:           <span class="val-str">"web"</span>,
+  <span class="key">"order_count"</span>:       <span class="val-num">47</span>,
+  <span class="key">"customer_count"</span>:    <span class="val-num">39</span>,
+  <span class="key">"units_sold"</span>:        <span class="val-num">94</span>,
+  <span class="key">"gross_revenue"</span>:     <span class="val-num">8459.06</span>,
+  <span class="key">"gross_margin"</span>:      <span class="val-num">2960.17</span>
+}
+        </div>
+      </div>
+      <div class="data-box">
+        <div class="data-box-header"><span>🤖 ML used Gold to score customer 42</span><small>data/ml/predictions/churn_scores.parquet</small></div>
+        <div class="data-code">
+<span class="comment">// XGBoost model trained on Gold customer activity
+// Output: churn risk score per customer</span>
+{
+  <span class="key">"customer_id"</span>:           <span class="val-num">42</span>,
+  <span class="key">"churn_score"</span>:           <span class="val-num">0.073</span>,  <span class="comment">// 7.3% churn risk</span>
+  <span class="key">"churn_segment"</span>:         <span class="val-str">"Low Risk"</span>,
+  <span class="key">"days_since_last_order"</span>:  <span class="val-num">2</span>,
+  <span class="key">"total_orders"</span>:          <span class="val-num">18</span>,
+  <span class="key">"total_revenue"</span>:         <span class="val-num">2847.34</span>
+}
+<span class="comment">// Served via: GET /ml/churn
+// → Customer 42 is loyal. No action needed.</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- METRICS -->
+  <div class="section-label">
+    <h2>Platform at a Glance</h2>
+    <p>Key numbers from the full pipeline</p>
+  </div>
+  <div class="metrics-grid">
+    <div class="metric-card">
+      <div class="metric-icon">📡</div>
+      <div class="metric-value" style="background:linear-gradient(135deg,#a78bfa,#7c3aed);-webkit-background-clip:text;-webkit-text-fill-color:transparent">6</div>
+      <div class="metric-label">Kafka Topics</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-icon">🥉</div>
+      <div class="metric-value" style="color:var(--bronze-glow)">∞</div>
+      <div class="metric-label">Bronze Events Stored</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-icon">🥈</div>
+      <div class="metric-value" style="color:var(--silver-glow)">6</div>
+      <div class="metric-label">Silver Tables</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-icon">🥇</div>
+      <div class="metric-value" style="color:var(--gold-glow)">3</div>
+      <div class="metric-label">Gold Fact Tables</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-icon">🤖</div>
+      <div class="metric-value" style="color:var(--ml-glow)">3</div>
+      <div class="metric-label">ML Models</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-icon">🌐</div>
+      <div class="metric-value" style="color:var(--api-glow)">7</div>
+      <div class="metric-label">API Endpoints</div>
+    </div>
+  </div>
+
+  <!-- SERVICES -->
+  <div class="section-label">
+    <h2>Running Services</h2>
+    <p>Every service in the stack and how to access it</p>
+  </div>
+  <div class="services-grid">
+    <div class="service-card">
+      <div class="service-port">:8080</div>
+      <div class="service-info"><h4>✈️ Airflow</h4><p>Pipeline orchestrator — schedules and monitors each step of the daily run</p><div class="service-status">Orchestrator</div></div>
+    </div>
+    <div class="service-card">
+      <div class="service-port">:8081</div>
+      <div class="service-info"><h4>📊 Kafka UI</h4><p>Browse topics, inspect messages, monitor consumer lag in real time</p><div class="service-status">Monitoring</div></div>
+    </div>
+    <div class="service-card">
+      <div class="service-port">:8000</div>
+      <div class="service-info"><h4>🌐 FastAPI</h4><p>REST API serving Gold insights and ML predictions — includes Swagger UI</p><div class="service-status">API Server</div></div>
+    </div>
+    <div class="service-card">
+      <div class="service-port">:8501</div>
+      <div class="service-info"><h4>📈 Streamlit</h4><p>Interactive data visualisation dashboard built on top of the FastAPI</p><div class="service-status">Dashboard</div></div>
+    </div>
+    <div class="service-card">
+      <div class="service-port">:9000</div>
+      <div class="service-info"><h4>🪣 MinIO</h4><p>S3-compatible object storage — hosts all Bronze, Silver, and Gold Delta tables</p><div class="service-status">Storage</div></div>
+    </div>
+    <div class="service-card">
+      <div class="service-port">:9090</div>
+      <div class="service-info"><h4>🔭 Prometheus</h4><p>Metrics collection from Kafka, API, and all running services</p><div class="service-status">Metrics</div></div>
+    </div>
+    <div class="service-card">
+      <div class="service-port">:3000</div>
+      <div class="service-info"><h4>📉 Grafana</h4><p>Visual dashboards for platform health, Kafka throughput, and pipeline status</p><div class="service-status">Dashboards</div></div>
+    </div>
+    <div class="service-card">
+      <div class="service-port">:8083</div>
+      <div class="service-info"><h4>📋 Schema Registry</h4><p>Stores and validates JSON schemas for all 6 event topics (Apicurio)</p><div class="service-status">Governance</div></div>
+    </div>
+  </div>
+
+  <footer>
+    <p>Modern Data Platform · Medallion Architecture (Bronze → Silver → Gold) · Built with Kafka, Spark, dbt, Airflow, FastAPI &amp; XGBoost</p>
+  </footer>
+</div>
+
+<script>
+  const events = [
+    {layer:'kafka',  text:'orders | customer_id=847 | total_amount=219.90'},
+    {layer:'kafka',  text:'clicks | session_id=sess_f4a1 | device=mobile'},
+    {layer:'bronze', text:'bronze/events | offset=84219 | validated ✓'},
+    {layer:'kafka',  text:'payments | payment_id=pay_ab3c | status=authorized'},
+    {layer:'silver', text:'silver/orders | event_id=a1b2c3 | typed ✓'},
+    {layer:'kafka',  text:'inventory | warehouse_id=wh_3 | qty_delta=+50'},
+    {layer:'gold',   text:'fct_daily_sales | France | gross_revenue=8,459'},
+    {layer:'bronze', text:'quarantine | bad_event | missing price field ✗'},
+    {layer:'kafka',  text:'customers | customer_id=42 | loyalty=gold'},
+    {layer:'silver', text:'silver/payments | order_id=10847 | deduped ✓'},
+    {layer:'gold',   text:'fct_customer_activity | churn_score=0.073 | Low Risk'},
+    {layer:'kafka',  text:'products | product_id=115 | category=Electronics'},
+    {layer:'bronze', text:'bronze/events | batch_id=291 | accepted=600 quarantined=3'},
+    {layer:'silver', text:'silver/clicks | session=sess_d9e2 | referrer=search'},
+  ];
+  const ticker = document.getElementById('ticker');
+  [...events, ...events].forEach(ev => {
+    const item = document.createElement('div');
+    item.className = 'tick-item';
+    item.innerHTML = `<span class="tick-dot ${ev.layer}"></span>${ev.text}`;
+    ticker.appendChild(item);
+  });
+
+  function switchTab(name, btn) {
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('tab-' + name).classList.add('active');
+    btn.classList.add('active');
+  }
+</script>
+</body>
+</html>

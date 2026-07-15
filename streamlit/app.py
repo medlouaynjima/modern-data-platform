@@ -1,8 +1,10 @@
 import streamlit as st
+import streamlit.components.v1 as components
 import requests
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
+from pathlib import Path
 
 # ── Page config ───────────────────────────────────────────────────────────────
 st.set_page_config(page_title="Retail BI Dashboard", layout="wide", page_icon="🛍️")
@@ -134,11 +136,12 @@ if not df_sales.empty:
 st.markdown("---")
 
 # ── Tabs ──────────────────────────────────────────────────────────────────────
-tab1, tab2, tab3, tab4 = st.tabs([
+tab1, tab2, tab3, tab4, tab5 = st.tabs([
     "📈 Sales & Revenue",
     "👥 Customer Activity",
     "📦 Inventory",
     "🤖 ML Insights",
+    "🗺️ Pipeline",
 ])
 
 # ── Tab 1: Sales ──────────────────────────────────────────────────────────────
@@ -338,3 +341,13 @@ with tab4:
 
                 with st.expander("View Raw Recommendation Data"):
                     st.dataframe(df_recs, use_container_width=True)
+
+# ── Tab 5: Pipeline overview ──────────────────────────────────────────────────
+with tab5:
+    st.subheader("How the Pipeline Works")
+    st.caption("An interactive overview of the Bronze → Silver → Gold medallion architecture.")
+    dashboard_path = Path(__file__).parent / "static" / "pipeline-dashboard.html"
+    if dashboard_path.exists():
+        components.html(dashboard_path.read_text(encoding="utf-8"), height=900, scrolling=True)
+    else:
+        st.error("Pipeline dashboard file not found at streamlit/static/pipeline-dashboard.html")
