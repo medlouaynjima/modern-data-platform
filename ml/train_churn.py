@@ -10,15 +10,9 @@ probability scores to data/ml/predictions/churn_scores.parquet.
 import os
 import sys
 import logging
-import joblib
 import numpy as np
 import pandas as pd
 from pathlib import Path
-from deltalake import DeltaTable
-from xgboost import XGBClassifier
-from sklearn.model_selection import train_test_split
-from sklearn.metrics import classification_report, roc_auc_score
-from sklearn.preprocessing import StandardScaler
 
 logging.basicConfig(
     level=logging.INFO,
@@ -37,6 +31,8 @@ CHURN_DAYS_THRESHOLD = int(os.getenv("CHURN_DAYS_THRESHOLD", "14"))
 
 def load_customer_activity(gold_path: str) -> pd.DataFrame:
     """Load and return fct_customer_activity from Delta Lake."""
+    from deltalake import DeltaTable  # lazy: not needed for local tests
+
     log.info(f"Loading customer activity from: {gold_path}")
     dt = DeltaTable(gold_path)
     df = dt.to_pandas()
@@ -112,6 +108,12 @@ FEATURE_COLS = [
 
 def train_and_score(features: pd.DataFrame) -> pd.DataFrame:
     """Train XGBoostClassifier and return per-customer churn scores."""
+    # Lazy imports: xgboost/sklearn only needed at train time, not import time
+    from xgboost import XGBClassifier
+    from sklearn.model_selection import train_test_split
+    from sklearn.metrics import classification_report, roc_auc_score
+    import joblib
+
     X = features[FEATURE_COLS].fillna(0)
     y = features["is_churned"]
 
@@ -133,7 +135,6 @@ def train_and_score(features: pd.DataFrame) -> pd.DataFrame:
             learning_rate=0.05,
             subsample=0.8,
             colsample_bytree=0.8,
-            use_label_encoder=False,
             eval_metric="logloss",
             random_state=42,
             verbosity=0,

@@ -1,0 +1,45 @@
+# ── Python cache ──────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+
+# ── Virtual environments ───────────────────────────────────────────────────────
+.venv/
+venv/
+env/
+.env
+.env.*
+
+# ── Local data (never ship raw Delta tables into images) ───────────────────────
+data/
+
+# ── Git and IDE ────────────────────────────────────────────────────────────────
+.git/
+.gitignore
+.gitattributes
+.vscode/
+.idea/
+
+# ── CI / tooling ───────────────────────────────────────────────────────────────
+.github/
+.pytest_cache/
+coverage.xml
+.coverage
+htmlcov/
+
+# ── Node (if any frontend tooling is added later) ─────────────────────────────
+node_modules/
+dist/
+build/
+
+# ── Airflow logs ──────────────────────────────────────────────────────────────
+airflow/logs/
+
+# ── dbt targets and logs ──────────────────────────────────────────────────────
+dbt/target/
+dbt/logs/
+
+# ── ML model artifacts (large; written at runtime, not baked into images) ─────
+ml/models/

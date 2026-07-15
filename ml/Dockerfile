@@ -18,6 +18,10 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
+# Run as non-root for security
+RUN adduser --disabled-password --gecos "" appuser
+USER appuser
+
 # Run all three training jobs in sequence; any individual failure exits non-zero
 CMD ["bash", "-c", \
      "python train_forecast.py && python train_churn.py && python train_recommendations.py"]

@@ -2,9 +2,9 @@
 
 A production-style data engineering portfolio project for ingesting, processing, storing, and serving retail business data.
 
-The platform is built incrementally across **eleven phases**. Phases 1–10 are complete.
+The platform is built incrementally across **eleven phases**. All 11 phases are complete.
 
-**Done (Phases 1–10):**
+**Done (Phases 1–11):**
 
 - Apache Kafka in KRaft mode, Kafka UI, PostgreSQL, MinIO, Apicurio Schema Registry
 - Synthetic retail event producers with pre-publish contract checks
@@ -16,9 +16,7 @@ The platform is built incrementally across **eleven phases**. Phases 1–10 are 
 - Observability with Prometheus JMX scraping and a pre-built Grafana Pipeline Health dashboard
 - FastAPI REST serving layer and Streamlit BI dashboard backed by the Gold Delta tables
 - ML layer: Prophet sales forecasting, XGBoost churn prediction, Implicit ALS recommendations
-
-**Planned (Phase 11):**
-- Production engineering (CI/CD, integration tests, schema versioning)
+- Production engineering: GitHub Actions CI/CD, pytest coverage, Docker security hardening, environment configs, schema versioning
 
 See [docs/roadmap.md](docs/roadmap.md) for the full revised plan.
 
@@ -215,6 +213,26 @@ docker compose --profile ml up --build ml-train
 - Browse ML endpoints at `http://localhost:8000/docs` and the **🤖 ML Insights** tab in Streamlit
 
 See [docs/phase-10-ml.md](docs/phase-10-ml.md).
+
+## Production Engineering (CI/CD + Tests + Security)
+
+All production hardening is in place:
+
+- **GitHub Actions CI** runs on every push: compile check, Docker Compose validation (all profiles), `pytest` with coverage
+- **Unit tests** for FastAPI endpoints and ML feature engineering (`tests/test_fastapi.py`, `tests/test_ml.py`)
+- **Non-root Docker users** in FastAPI, Streamlit, and ML containers
+- **Environment separation**: `.env.dev`, `.env.staging`, `.env.prod`
+- **Schema evolution strategy**: see [docs/schema-evolution.md](docs/schema-evolution.md)
+
+```powershell
+# Run tests locally
+python -m pytest
+
+# Start with a specific environment
+docker compose --env-file .env.dev up -d
+```
+
+See [docs/phase-11-production.md](docs/phase-11-production.md).
 
 ## Repository Layout
 
