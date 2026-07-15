@@ -124,9 +124,19 @@ def train_and_score(features: pd.DataFrame) -> pd.DataFrame:
             features["days_since_last_order"] / features["days_since_last_order"].max()
         ).clip(0, 1)
     else:
+        # Stratified split requires at least 2 samples per class in each fold.
+        # Fall back to a plain split when any class is too small to stratify.
+        min_class_count = y.value_counts().min()
+        use_stratify = min_class_count >= 5  # need ≥2 per class in 80/20 split
         X_train, X_test, y_train, y_test = train_test_split(
-            X, y, test_size=0.2, random_state=42, stratify=y
+            X, y, test_size=0.2, random_state=42,
+            stratify=y if use_stratify else None,
         )
+        if not use_stratify:
+            log.warning(
+                f"Minority class has only {min_class_count} sample(s); "
+                "falling back to non-stratified split."
+            )
 
         log.info("Training XGBoostClassifier...")
         model = XGBClassifier(

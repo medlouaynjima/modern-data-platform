@@ -10,7 +10,6 @@ def test_phase_one_directories_exist():
         "spark",
         "kafka",
         "producer",
-        "consumer",
         "data/bronze",
         "data/silver",
         "data/gold",

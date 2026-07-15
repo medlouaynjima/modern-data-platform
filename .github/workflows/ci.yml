@@ -27,7 +27,7 @@ jobs:
           python -m pip install -r airflow/requirements.txt
           python -m pip install -r data_quality/requirements.txt
           python -m pip install -r contracts/requirements.txt
-          python -m pip install fastapi httpx pandas pyarrow pydantic
+          python -m pip install fastapi httpx pandas pyarrow pydantic impyla thrift thrift_sasl
           python -m pip install scikit-learn xgboost joblib scipy
 
       - name: Lint — compile check
