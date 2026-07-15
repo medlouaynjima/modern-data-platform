@@ -57,6 +57,7 @@ def test_retail_pipeline_task_chain(dag_bag) -> None:
         "wait_for_spark_thrift",
         "dbt_gold_build",
         "validate_gold",
+        "ml_training",
     }
     assert expected_tasks == {task.task_id for task in dag.tasks}
 
@@ -69,6 +70,7 @@ def test_retail_pipeline_task_chain(dag_bag) -> None:
     wait = dag.get_task("wait_for_spark_thrift")
     dbt = dag.get_task("dbt_gold_build")
     validate_gold = dag.get_task("validate_gold")
+    ml_training = dag.get_task("ml_training")
 
     assert inject in produce.downstream_list
     assert bronze in inject.downstream_list
@@ -78,6 +80,7 @@ def test_retail_pipeline_task_chain(dag_bag) -> None:
     assert wait in validate_silver.downstream_list
     assert dbt in wait.downstream_list
     assert validate_gold in dbt.downstream_list
+    assert ml_training in validate_gold.downstream_list
 
 
 def test_retail_pipeline_retries_configured(dag_bag) -> None:
@@ -114,6 +117,7 @@ def test_retail_pipeline_dag_source_contract() -> None:
         "wait_for_spark_thrift",
         "dbt_gold_build",
         "validate_gold",
+        "ml_training",
     ):
         assert f'task_id="{task_id}"' in dag_source
 
@@ -132,3 +136,4 @@ def test_retail_pipeline_dag_source_contract() -> None:
     assert ">> wait_for_spark_thrift" in dag_source
     assert ">> dbt_gold_build" in dag_source
     assert ">> validate_gold" in dag_source
+    assert ">> ml_training" in dag_source
