@@ -14,26 +14,12 @@ st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
     html, body, [class*="css"] { font-family: 'Inter', sans-serif; }
-    .kpi-card {
-        background: linear-gradient(135deg, #1e1e2e 0%, #2a2a3e 100%);
-        border: 1px solid rgba(255,255,255,0.08);
-        border-radius: 14px;
-        padding: 22px 20px;
-        text-align: center;
-        box-shadow: 0 6px 20px rgba(0,0,0,0.3);
-        color: white;
-        margin-bottom: 10px;
-    }
-    .kpi-title { font-size: 0.85rem; color: #9a9ab8; letter-spacing: 0.05em; text-transform: uppercase; }
-    .kpi-value { font-size: 2rem; font-weight: 700; color: #7c5cbf; margin-top: 6px; }
-    .churn-high  { color: #ff6b6b; font-weight: 700; }
-    .churn-med   { color: #ffd166; font-weight: 600; }
-    .churn-low   { color: #06d6a0; font-weight: 600; }
     .section-header { font-size: 1.1rem; font-weight: 600; margin-bottom: 6px; color: #c9d1d9; }
 </style>
 """, unsafe_allow_html=True)
 
 st.title("🛍️ Retail Business Intelligence")
+st.caption("Synthetic retail data demo with live analytics, customer views, inventory tracking, and ML outputs.")
 
 API_URL = "http://fastapi:8000"
 
@@ -100,6 +86,27 @@ def fetch_recommendations(customer_id: str) -> pd.DataFrame:
         return pd.DataFrame()
 
 
+# ── Fetch core data ───────────────────────────────────────────────────────────
+# Wrap in a spinner so the user sees feedback during Spark Thrift warmup
+with st.spinner("Connecting to data warehouse… (first load may take up to 90s)"):
+    df_sales = fetch_data("/sales/daily")
+    df_customers = fetch_data("/customers/top")
+    df_inventory = fetch_data("/inventory/position")
+
+# ── Top KPI row ───────────────────────────────────────────────────────────────
+if not df_sales.empty:
+    total_revenue = df_sales["total_sales_amount"].sum()
+    total_orders = df_sales["total_orders"].sum()
+    top_customer = df_customers.iloc[0]["customer_id"] if not df_customers.empty else "—"
+    avg_order_value = (total_revenue / total_orders) if total_orders else 0
+
+    col1, col2, col3, col4 = st.columns(4)
+    col1.metric("Revenue (30 days)", f"${total_revenue:,.0f}")
+    col2.metric("Orders (30 days)", f"{total_orders:,.0f}")
+    col3.metric("Avg order value", f"${avg_order_value:,.0f}")
+    col4.metric("Top customer ID", f"{top_customer}")
+else:
+    st.info("Sales metrics are not available yet. Refresh after the backend finishes loading.")
 
 st.markdown("---")
 
@@ -114,29 +121,7 @@ tab1, tab2, tab3, tab4, tab5 = st.tabs([
 
 # ── Tab 1: Sales ──────────────────────────────────────────────────────────────
 with tab1:
-    with st.spinner("Loading sales data… (may take up to 90s on first load)"):
-        df_sales = fetch_data("/sales/daily")
-
-    # KPI row
-    if not df_sales.empty:
-        total_revenue = df_sales["total_sales_amount"].sum()
-        total_orders  = df_sales["total_orders"].sum()
-        col1, col2 = st.columns(2)
-        with col1:
-            st.markdown(
-                f'<div class="kpi-card"><div class="kpi-title">Total Revenue (30 Days)</div>'
-                f'<div class="kpi-value">${total_revenue:,.0f}</div></div>',
-                unsafe_allow_html=True,
-            )
-        with col2:
-            st.markdown(
-                f'<div class="kpi-card"><div class="kpi-title">Total Orders (30 Days)</div>'
-                f'<div class="kpi-value">{total_orders:,.0f}</div></div>',
-                unsafe_allow_html=True,
-            )
-        st.markdown("")
-
-    st.subheader("Daily Revenue Trend")
+    st.subheader("Sales overview")
     if not df_sales.empty:
         df_sales = df_sales.sort_values("date")
         fig = px.line(
@@ -149,16 +134,15 @@ with tab1:
             font_color="#c9d1d9", xaxis_title="Date", yaxis_title="Revenue ($)",
         )
         st.plotly_chart(fig, use_container_width=True)
-        with st.expander("View Raw Sales Data"):
+        st.caption("Daily revenue for the last 30 days.")
+        with st.expander("View sales data"):
             st.dataframe(df_sales, use_container_width=True)
     else:
         st.info("No sales data available.")
 
 # ── Tab 2: Customers ──────────────────────────────────────────────────────────
 with tab2:
-    with st.spinner("Loading customer data…"):
-        df_customers = fetch_data("/customers/top")
-    st.subheader("Top 10 Customers by Revenue")
+    st.subheader("Customer activity")
     if not df_customers.empty:
         fig = px.bar(
             df_customers, x="customer_id", y="total_spent",
@@ -169,28 +153,25 @@ with tab2:
             font_color="#c9d1d9",
         )
         st.plotly_chart(fig, use_container_width=True)
-        with st.expander("View Customer Table"):
+        st.caption("Top customers ranked by total spending.")
+        with st.expander("View customer data"):
             st.dataframe(df_customers, use_container_width=True)
     else:
         st.info("No customer data available.")
 
 # ── Tab 3: Inventory ──────────────────────────────────────────────────────────
 with tab3:
-    with st.spinner("Loading inventory data…"):
-        df_inventory = fetch_data("/inventory/position")
-    st.subheader("Recent Inventory Positions")
+    st.subheader("Inventory")
     if not df_inventory.empty:
+        st.caption("Latest stock position by product and warehouse.")
         st.dataframe(df_inventory, use_container_width=True)
     else:
         st.info("No inventory data available.")
 
 # ── Tab 4: ML Insights ────────────────────────────────────────────────────────
 with tab4:
-    st.subheader("🤖 ML Insights")
-    st.caption(
-        "Predictions are generated by the ML training pipeline. "
-        "Run `docker compose --profile ml up ml-train` to refresh."
-    )
+    st.subheader("ML insights")
+    st.caption("Forecasts, churn scoring, and recommendations generated from the demo dataset.")
 
     ml_tab1, ml_tab2, ml_tab3 = st.tabs([
         "📊 Sales Forecast",
@@ -200,7 +181,7 @@ with tab4:
 
     # ── ML Sub-tab 1: Sales Forecast ─────────────────────────────────────────
     with ml_tab1:
-        st.markdown('<p class="section-header">30-Day Revenue Forecast (Prophet)</p>', unsafe_allow_html=True)
+        st.markdown('<p class="section-header">30-day revenue forecast</p>', unsafe_allow_html=True)
         df_forecast = fetch_forecast()
 
         if df_forecast.empty:
@@ -249,14 +230,14 @@ with tab4:
             st.plotly_chart(fig, use_container_width=True)
 
             future_total = df_future["forecast_revenue"].sum()
-            st.metric("Projected Revenue (Next 30 Days)", f"${future_total:,.0f}")
+            st.metric("Projected revenue (next 30 days)", f"${future_total:,.0f}")
 
             with st.expander("View Forecast Data"):
                 st.dataframe(df_forecast, use_container_width=True)
 
     # ── ML Sub-tab 2: Churn Risk ──────────────────────────────────────────────
     with ml_tab2:
-        st.markdown('<p class="section-header">Customer Churn Risk (XGBoost)</p>', unsafe_allow_html=True)
+        st.markdown('<p class="section-header">Customer churn risk</p>', unsafe_allow_html=True)
         churn_limit = st.slider("Number of customers to display", 10, 100, 25, key="churn_limit")
         df_churn = fetch_churn(limit=churn_limit)
 
@@ -294,12 +275,12 @@ with tab4:
             )
             st.plotly_chart(fig, use_container_width=True)
 
-            with st.expander("View Full Churn Table"):
+            with st.expander("View churn data"):
                 st.dataframe(df_churn, use_container_width=True)
 
     # ── ML Sub-tab 3: Recommendations ────────────────────────────────────────
     with ml_tab3:
-        st.markdown('<p class="section-header">Product Recommendations (Implicit ALS)</p>', unsafe_allow_html=True)
+        st.markdown('<p class="section-header">Product recommendations</p>', unsafe_allow_html=True)
 
         # Offer a customer ID selector using churn data as the universe
         df_churn_all = fetch_churn(limit=200)
@@ -316,30 +297,13 @@ with tab4:
             if df_recs.empty:
                 st.info(f"No recommendations found for customer `{selected_customer}`.")
             else:
-                st.success(f"Top {len(df_recs)} recommended products for **{selected_customer}**")
-                # Display as styled cards
-                cols = st.columns(min(len(df_recs), 5))
-                for i, (_, row) in enumerate(df_recs.iterrows()):
-                    with cols[i % 5]:
-                        score_pct = round(float(row.get("recommendation_score", 0)) * 100, 1)
-                        name = row.get("product_name", row.get("product_id", "—"))
-                        cat  = row.get("category", "")
-                        st.markdown(
-                            f'<div class="kpi-card">'
-                            f'<div class="kpi-title">#{int(row["rank"])} · {cat}</div>'
-                            f'<div class="kpi-value" style="font-size:1.1rem">{name}</div>'
-                            f'<div class="kpi-title" style="margin-top:6px">Score: {score_pct}%</div>'
-                            f'</div>',
-                            unsafe_allow_html=True,
-                        )
-
-                with st.expander("View Raw Recommendation Data"):
-                    st.dataframe(df_recs, use_container_width=True)
+                st.success(f"Top {len(df_recs)} recommended products for customer {selected_customer}")
+                st.dataframe(df_recs, use_container_width=True)
 
 # ── Tab 5: Pipeline overview ──────────────────────────────────────────────────
 with tab5:
-    st.subheader("How the Pipeline Works")
-    st.caption("An interactive overview of the Bronze → Silver → Gold medallion architecture.")
+    st.subheader("Pipeline")
+    st.caption("How raw retail events move from ingestion to analytics tables.")
     dashboard_path = Path(__file__).parent / "static" / "pipeline-dashboard.html"
     if dashboard_path.exists():
         components.html(dashboard_path.read_text(encoding="utf-8"), height=900, scrolling=True)

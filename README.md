@@ -1,283 +1,303 @@
 # Modern Data Platform
 
-A production-style data engineering portfolio project for ingesting, processing, storing, and serving retail business data.
+A local end-to-end retail analytics platform built to simulate how modern data systems ingest events, transform them into analytics tables, and serve insights through APIs and dashboards.
 
-The platform is built incrementally across **eleven phases**. All 11 phases are complete.
+This project generates synthetic retail events, processes them through a Kafka + Spark + dbt + Airflow pipeline, exposes the results through FastAPI, and presents them in a Streamlit dashboard. It also includes ML workflows for forecasting, churn scoring, and product recommendations.
 
-**Done (Phases 1–11):**
+## Why this project matters
 
-- Apache Kafka in KRaft mode, Kafka UI, PostgreSQL, MinIO, Apicurio Schema Registry
-- Synthetic retail event producers with pre-publish contract checks
-- Spark Streaming Bronze ingestion with pre-Bronze validation and quarantine
-- Spark Silver transformations into typed Delta tables
-- dbt Gold marts for sales, customer activity, and inventory
-- Airflow orchestration for the end-to-end retail pipeline
-- JSON Schema data contracts and Great Expectations post-layer validation
-- Observability with Prometheus JMX scraping and a pre-built Grafana Pipeline Health dashboard
-- FastAPI REST serving layer and Streamlit BI dashboard backed by the Gold Delta tables
-- ML layer: Prophet sales forecasting, XGBoost churn prediction, Implicit ALS recommendations
-- Production engineering: GitHub Actions CI/CD, pytest coverage, Docker security hardening, environment configs, schema versioning
+This project demonstrates practical experience with:
 
-See [docs/roadmap.md](docs/roadmap.md) for the full revised plan.
+- event-driven data ingestion
+- medallion-style data architecture (Bronze, Silver, Gold)
+- analytics engineering with dbt
+- workflow orchestration with Airflow
+- API serving with FastAPI
+- dashboarding with Streamlit
+- monitoring with Prometheus and Grafana
+- containerized local deployment with Docker Compose
+
+In short, it shows how raw retail events can become business-ready analytics and ML outputs in one working platform.
+
+## What the platform does
+
+The pipeline simulates an online retail business:
+
+1. synthetic customer, product, order, payment, click, and inventory events are generated
+2. events are published to Kafka
+3. Spark ingests them into a Bronze layer and quarantines invalid records
+4. Spark transforms valid records into structured Silver tables
+5. dbt builds Gold analytics marts for reporting
+6. FastAPI serves business endpoints from the Gold layer
+7. Streamlit displays KPIs and charts
+8. ML jobs generate forecasts, churn scores, and recommendations
 
 ## Architecture
 
-See [docs/architecture.md](docs/architecture.md) for the system diagram and service notes.
-See [docs/runbook.md](docs/runbook.md) for local operating commands.
-
 ```text
-Producer → Kafka → Schema Registry → Validation → Bronze → Silver → dbt Gold
-                                                                        ↓
-                                                          FastAPI REST API ←── ML Predictions
-                                                                        ↓             ↑
-                                                        Streamlit BI Dashboard   ML Training
-                                                                        ↓        (Prophet/XGB/ALS)
-                                                      Prometheus + Grafana (Observability)
+Synthetic Event Producer
+        ↓
+      Kafka  ←→  Schema Registry
+        ↓
+ Spark Bronze Ingestion
+        ↓
+ Spark Silver Transformations
+        ↓
+ dbt Gold Models
+        ↓
+   FastAPI Endpoints
+        ↓
+ Streamlit Dashboard
+
+Additional platform services:
+- Airflow orchestrates the end-to-end workflow
+- Prometheus + Grafana monitor service health
+- MinIO provides object storage support
+- PostgreSQL stores Airflow metadata
+- ML jobs read Gold data and write forecasts/predictions
 ```
 
-## Quick Start
+### Architecture in plain language
 
-1. Copy environment defaults:
+This project follows a simple flow:
 
-   ```powershell
-   Copy-Item .env.example .env
-   ```
+- **Python producers** generate synthetic retail events
+- **Kafka** receives and distributes those events
+- **Spark Bronze** stores the raw event data
+- **Spark Silver** cleans and structures the data into usable tables
+- **dbt Gold** builds business-ready analytics models
+- **FastAPI** exposes those results through REST endpoints
+- **Streamlit** displays the outputs as charts, KPIs, and tables
+- **Airflow** automates the full pipeline
+- **ML jobs** read the Gold data and produce forecasts, churn scores, and recommendations
 
-2. Start the core platform:
+If you are not technical, you can think of it as a system that turns raw store activity into dashboards and insights automatically.
 
-   ```powershell
-   docker compose up -d
-   ```
+## Main technologies
 
-3. Check services:
+| Area | Tools |
+| --- | --- |
+| Event streaming | Kafka, Kafka UI |
+| Contracts | Apicurio Schema Registry |
+| Processing | PySpark, Delta Lake |
+| Analytics engineering | dbt, Spark Thrift |
+| Orchestration | Apache Airflow |
+| Serving | FastAPI |
+| Dashboard | Streamlit |
+| ML workflows | Prophet-style forecasting fallback, XGBoost, Implicit ALS |
+| Monitoring | Prometheus, Grafana |
+| Storage / metadata | MinIO, PostgreSQL |
+| Deployment | Docker Compose |
 
-   ```powershell
-   docker compose ps
-   ```
+## Business outputs
 
-## Local Endpoints
+The working platform produces:
+
+- daily sales and revenue metrics
+- top customer views
+- inventory position views
+- 30-day revenue forecast
+- customer churn risk scoring
+- product recommendations
+
+## API endpoints
+
+Example FastAPI endpoints:
+
+- `GET /sales/daily`
+- `GET /customers/top`
+- `GET /inventory/position`
+- `GET /ml/forecast`
+- `GET /ml/churn`
+- `GET /ml/recommendations/{customer_id}`
+
+Swagger UI:
+
+- `http://localhost:8000/docs`
+
+## Dashboard
+
+Streamlit dashboard:
+
+- `http://localhost:8501`
+
+The dashboard includes:
+
+- revenue KPIs
+- order metrics
+- sales trend chart
+- customer activity view
+- inventory table
+- ML insights
+- pipeline overview
+
+## Local services
 
 | Service | URL |
 | --- | --- |
-| Kafka bootstrap | `localhost:29092` |
+| Streamlit dashboard | `http://localhost:8501` |
+| FastAPI docs | `http://localhost:8000/docs` |
+| Airflow | `http://localhost:8082` |
 | Kafka UI | `http://localhost:8081` |
-| PostgreSQL | `localhost:5432` |
-| MinIO API | `http://localhost:9000` |
-| MinIO Console | `http://localhost:9001` |
-| Airflow UI | `http://localhost:8082` |
 | Schema Registry | `http://localhost:8083` |
-| Prometheus | `http://localhost:9090` |
 | Grafana | `http://localhost:3000` |
-| FastAPI (Swagger UI) | `http://localhost:8000/docs` |
-| Streamlit BI Dashboard | `http://localhost:8501` |
-| ML Predictions (FastAPI) | `http://localhost:8000/ml/forecast`, `/ml/churn`, `/ml/recommendations/{id}` |
+| Prometheus | `http://localhost:9090` |
+| MinIO Console | `http://localhost:9001` |
 
-Default credentials:
-- MinIO: `minioadmin` / `minioadmin`
+Default local credentials:
+
 - Airflow: `admin` / `admin`
 - Grafana: `admin` / `admin`
-- PostgreSQL: see `.env.example`
+- MinIO: `minioadmin` / `minioadmin`
 
-## Kafka Topics
+## Quick start
 
-The stack creates the core retail event topics at startup:
-
-- `customers`
-- `products`
-- `orders`
-- `payments`
-- `clicks`
-- `inventory`
-
-## Generate Events
-
-Dry run without Kafka:
+1. Start the platform:
 
 ```powershell
-python -m producer.main --events 2 --rate 0 --dry-run
+docker compose up -d
 ```
 
-Publish to Kafka after starting Docker Compose:
-
-```powershell
-python -m pip install -r producer/requirements.txt
-python -m producer.main --bootstrap-server localhost:29092 --events 100 --rate 25
-```
-
-Containerized producer:
+2. Generate events:
 
 ```powershell
 docker compose --profile producers up producer
 ```
 
-See [docs/phase-2-producers.md](docs/phase-2-producers.md).
-
-## Ingest Bronze Data
-
-After Kafka has events, run the Spark Bronze ingestion job:
+3. Build Bronze:
 
 ```powershell
 docker compose --profile spark up spark-bronze
 ```
 
-Bronze Delta output is written under `data/bronze/events`.
-See [docs/phase-3-bronze-streaming.md](docs/phase-3-bronze-streaming.md).
-
-## Transform Silver Data
-
-After Bronze data exists, run the Spark Silver transformation job:
+4. Build Silver:
 
 ```powershell
 docker compose --profile spark up spark-silver
 ```
 
-Silver Delta output is written under `data/silver/<topic>`.
-See [docs/phase-4-silver-transformations.md](docs/phase-4-silver-transformations.md).
-
-## Build Gold Models
-
-After Silver data exists, run dbt against Spark:
+5. Build Gold:
 
 ```powershell
 docker compose --profile dbt up --build dbt
 ```
 
-Gold Delta output is written under `data/gold`.
-See [docs/phase-5-dbt-gold-models.md](docs/phase-5-dbt-gold-models.md).
-
-## Orchestrate with Airflow
-
-Start Airflow and Spark Thrift:
-
-```powershell
-docker compose --profile airflow up -d --build
-```
-
-Trigger the full pipeline DAG:
-
-```powershell
-docker compose --profile airflow exec airflow-scheduler airflow dags trigger retail_pipeline
-```
-
-See [docs/phase-6-airflow-orchestration.md](docs/phase-6-airflow-orchestration.md).
-
-## Validate Data Quality
-
-After Silver or Gold data exists, run Great Expectations checkpoints:
-
-```powershell
-docker compose --profile ge up --build ge-bronze
-docker compose --profile ge up --build ge-silver
-docker compose --profile ge up --build ge-gold
-```
-
-See [docs/phase-7-great-expectations.md](docs/phase-7-great-expectations.md).
-
-## Observability
-
-Start Prometheus and Grafana:
-
-```powershell
-docker compose --profile monitoring up -d --build
-```
-
-- **Prometheus** at `http://localhost:9090` scrapes Kafka JMX metrics automatically.
-- **Grafana** at `http://localhost:3000` has the **Pipeline Health** dashboard pre-loaded.
-
-See [docs/phase-8-observability.md](docs/phase-8-observability.md).
-
-## Serving Layer (API + BI)
-
-Start the FastAPI REST API and Streamlit dashboard:
-
-```powershell
-docker compose --profile serving up -d --build
-```
-
-- **FastAPI Swagger UI** at `http://localhost:8000/docs` — browse and call the Gold data endpoints interactively.
-- **Streamlit BI Dashboard** at `http://localhost:8501` — interactive KPI cards, revenue trends, top customer charts, and inventory views.
-
-See [docs/phase-9-serving.md](docs/phase-9-serving.md).
-
-## ML Layer (Forecasting, Churn, Recommendations)
-
-Train all three ML models against the Gold tables:
+6. Run ML workflows:
 
 ```powershell
 docker compose --profile ml up --build ml-train
 ```
 
-- **Prophet** forecast written to `data/ml/forecasts/sales_forecast.parquet`
-- **XGBoost** churn scores written to `data/ml/predictions/churn_scores.parquet`
-- **ALS** recommendations written to `data/ml/predictions/recommendations.parquet`
-- Browse ML endpoints at `http://localhost:8000/docs` and the **🤖 ML Insights** tab in Streamlit
+7. Open the dashboard:
 
-See [docs/phase-10-ml.md](docs/phase-10-ml.md).
+- `http://localhost:8501`
 
-## Production Engineering (CI/CD + Tests + Security)
+## Airflow orchestration
 
-All production hardening is in place:
+The project includes an Airflow DAG called `retail_pipeline` that orchestrates the main workflow:
 
-- **GitHub Actions CI** runs on every push: compile check, Docker Compose validation (all profiles), `pytest` with coverage
-- **Unit tests** for FastAPI endpoints and ML feature engineering (`tests/test_fastapi.py`, `tests/test_ml.py`)
-- **Non-root Docker users** in FastAPI, Streamlit, and ML containers
-- **Environment separation**: `.env.dev`, `.env.staging`, `.env.prod`
-- **Schema evolution strategy**: see [docs/schema-evolution.md](docs/schema-evolution.md)
+- event production
+- quarantine demo injection
+- Bronze ingestion
+- Silver transformation
+- Gold model build with dbt
+- Gold validation
+- ML training
 
-```powershell
-# Run tests locally
-python -m pytest
+Airflow UI:
 
-# Start with a specific environment
-docker compose --env-file .env.dev up -d
-```
+- `http://localhost:8082`
 
-See [docs/phase-11-production.md](docs/phase-11-production.md).
+## Data layers
 
-## Repository Layout
+### Bronze
+Raw ingested event data plus quarantine handling for invalid records.
+
+### Silver
+Cleaned and typed domain tables for:
+
+- customers
+- products
+- orders
+- payments
+- clicks
+- inventory
+
+### Gold
+Business-ready marts for:
+
+- `fct_daily_sales`
+- `fct_customer_activity`
+- `fct_inventory_position`
+
+## ML outputs
+
+The ML layer reads Gold data and writes reusable artifacts:
+
+- forecast parquet output
+- churn model artifact
+- churn prediction parquet output
+- recommendation parquet output
+
+Example output paths:
+
+- `data/ml/forecasts/sales_forecast.parquet`
+- `data/ml/models/churn_model.joblib`
+- `data/ml/predictions/churn_scores.parquet`
+- `data/ml/predictions/recommendations.parquet`
+
+## Repository structure
 
 ```text
-airflow/       Production DAGs and orchestration assets
-consumer/      Streaming and batch consumers
-data/          Local Bronze, Silver, and Gold development data
-data_quality/  Great Expectations suites and validation CLI
-dbt/           Analytics engineering models
-docs/          Architecture, roadmap, and operating notes
-fastapi/       FastAPI REST serving layer
-kafka/         Kafka configuration and Dockerfile
-ml/            Forecasting, recommendation, and fraud models
+airflow/       DAGs and orchestration assets
+contracts/     Event schemas and contracts
+data/          Local Bronze, Silver, Gold, and ML outputs
+data_quality/  Validation assets
+fastapi/       REST API
+kafka/         Kafka image/configuration
+ml/            ML training jobs
+dbt/           Gold analytics models
 monitoring/    Prometheus and Grafana assets
-producer/      Synthetic retail data generators
-spark/         PySpark streaming and batch jobs
-streamlit/     Streamlit BI dashboard
-tests/         Unit and integration tests
+producer/      Synthetic event generator
+spark/         Bronze and Silver Spark jobs
+streamlit/     BI dashboard
+tests/         Automated tests
 ```
 
-## Development Commands
+## What I learned
 
-```powershell
-make config   # Validate the Docker Compose configuration
-make up       # Start local services
-make ps       # Show service status
-make logs     # Follow logs
-make down     # Stop services
-make bronze   # Run Spark Streaming to Bronze Delta
-make silver   # Run Spark transformations to Silver Delta
-make gold     # Run dbt models to Gold Delta
-make airflow  # Start Airflow services
-make pipeline # Trigger the retail_pipeline DAG
-make validate-bronze # Run Great Expectations on Bronze events
-make validate-silver # Run Great Expectations on Silver tables
-make validate-gold   # Run Great Expectations on Gold marts
-```
+This project helped me practice:
+
+- connecting multiple data tools in one working system
+- debugging cross-container filesystem and orchestration issues
+- turning raw events into analytics-ready models
+- serving data products through APIs and dashboards
+- thinking end-to-end about data engineering, not just isolated scripts
+
+## Notes
+
+- The dataset is synthetic and intended for demonstration.
+- This platform runs locally with Docker Compose.
+- Some ML outputs use fallback behavior when certain library versions are incompatible, but the pipeline remains operational.
 
 ## Validation
 
+Example validation commands:
+
 ```powershell
-docker compose config
+docker compose ps
 python -m pytest
 ```
 
-## Roadmap
+## Future improvements
 
-See [docs/roadmap.md](docs/roadmap.md).
+Possible next steps:
+
+- improve dashboard polish and UX
+- add stronger ML versioning / experiment tracking
+- expand automated data quality checks
+- add richer business dimensions and larger demo datasets
+
+---
+
+If you are a recruiter, engineer, or hiring manager, this project is best understood as a practical portfolio example of a local modern data platform with integrated analytics and ML workflows.

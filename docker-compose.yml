@@ -226,7 +226,7 @@ services:
       - --schema-registry-url
       - http://schema-registry:8080
     volumes:
-      - ${MDP_PROJECT_DIR:-.}/data:/opt/spark/work-dir/data
+      - ./data:/opt/spark/work-dir/data
     restart: "no"
 
   spark-silver:
@@ -248,7 +248,7 @@ services:
       - --silver-path
       - /opt/spark/work-dir/data/silver
     volumes:
-      - ${MDP_PROJECT_DIR:-.}/data:/opt/spark/work-dir/data
+      - ./data:/opt/spark/work-dir/data
     restart: "no"
 
   spark-thrift:
@@ -272,7 +272,7 @@ services:
     ports:
       - "${SPARK_THRIFT_PORT:-10000}:10000"
     volumes:
-      - ${MDP_PROJECT_DIR:-.}/data:/opt/spark/work-dir/data
+      - ./data:/opt/spark/work-dir/data
     healthcheck:
       test: ["CMD-SHELL", "bash -c '</dev/tcp/localhost/10000'"]
       interval: 10s
@@ -297,8 +297,8 @@ services:
       - --project-dir
       - /usr/app/dbt
     volumes:
-      - ${MDP_PROJECT_DIR:-.}/dbt:/usr/app/dbt
-      - ${MDP_PROJECT_DIR:-.}/data:/opt/spark/work-dir/data
+      - ./dbt:/usr/app/dbt
+      - ./data:/opt/spark/work-dir/data
     restart: "no"
 
   ge-bronze:
@@ -514,7 +514,7 @@ services:
     environment:
       ML_OUTPUT_PATH: /opt/spark/work-dir/data/ml
     volumes:
-      - ${MDP_PROJECT_DIR:-.}/data:/opt/spark/work-dir/data
+      - ./data:/opt/spark/work-dir/data
     ports:
       - "8000:8000"
     restart: unless-stopped
@@ -543,7 +543,7 @@ services:
       CHURN_DAYS_THRESHOLD: "14"
       RECOMMENDATION_TOP_N: "5"
     volumes:
-      - ${MDP_PROJECT_DIR:-.}/data:/opt/spark/work-dir/data
+      - ./data:/opt/spark/work-dir/data
     restart: "no"
 
 volumes:
