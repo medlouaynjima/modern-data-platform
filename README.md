@@ -300,4 +300,4 @@ Possible next steps:
 
 ---
 
-If you are a recruiter, engineer, or hiring manager, this project is best understood as a practical portfolio example of a local modern data platform with integrated analytics and ML workflows.
+
