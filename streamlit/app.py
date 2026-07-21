@@ -100,38 +100,6 @@ def fetch_recommendations(customer_id: str) -> pd.DataFrame:
         return pd.DataFrame()
 
 
-# ── Fetch core data ───────────────────────────────────────────────────────────
-# Wrap in a spinner so the user sees feedback during Spark Thrift warmup
-with st.spinner("Connecting to data warehouse… (first load may take up to 90s)"):
-    df_sales = fetch_data("/sales/daily")
-    df_customers = fetch_data("/customers/top")
-    df_inventory = fetch_data("/inventory/position")
-
-# ── Top KPI row ───────────────────────────────────────────────────────────────
-if not df_sales.empty:
-    total_revenue = df_sales["total_sales_amount"].sum()
-    total_orders  = df_sales["total_orders"].sum()
-
-    col1, col2, col3 = st.columns(3)
-    with col1:
-        st.markdown(
-            f'<div class="kpi-card"><div class="kpi-title">Total Revenue (30 Days)</div>'
-            f'<div class="kpi-value">${total_revenue:,.0f}</div></div>',
-            unsafe_allow_html=True,
-        )
-    with col2:
-        st.markdown(
-            f'<div class="kpi-card"><div class="kpi-title">Total Orders (30 Days)</div>'
-            f'<div class="kpi-value">{total_orders:,.0f}</div></div>',
-            unsafe_allow_html=True,
-        )
-    with col3:
-        top_customer = df_customers.iloc[0]["customer_id"] if not df_customers.empty else "—"
-        st.markdown(
-            f'<div class="kpi-card"><div class="kpi-title">Top Customer</div>'
-            f'<div class="kpi-value">{top_customer}</div></div>',
-            unsafe_allow_html=True,
-        )
 
 st.markdown("---")
 
@@ -146,6 +114,28 @@ tab1, tab2, tab3, tab4, tab5 = st.tabs([
 
 # ── Tab 1: Sales ──────────────────────────────────────────────────────────────
 with tab1:
+    with st.spinner("Loading sales data… (may take up to 90s on first load)"):
+        df_sales = fetch_data("/sales/daily")
+
+    # KPI row
+    if not df_sales.empty:
+        total_revenue = df_sales["total_sales_amount"].sum()
+        total_orders  = df_sales["total_orders"].sum()
+        col1, col2 = st.columns(2)
+        with col1:
+            st.markdown(
+                f'<div class="kpi-card"><div class="kpi-title">Total Revenue (30 Days)</div>'
+                f'<div class="kpi-value">${total_revenue:,.0f}</div></div>',
+                unsafe_allow_html=True,
+            )
+        with col2:
+            st.markdown(
+                f'<div class="kpi-card"><div class="kpi-title">Total Orders (30 Days)</div>'
+                f'<div class="kpi-value">{total_orders:,.0f}</div></div>',
+                unsafe_allow_html=True,
+            )
+        st.markdown("")
+
     st.subheader("Daily Revenue Trend")
     if not df_sales.empty:
         df_sales = df_sales.sort_values("date")
@@ -166,6 +156,8 @@ with tab1:
 
 # ── Tab 2: Customers ──────────────────────────────────────────────────────────
 with tab2:
+    with st.spinner("Loading customer data…"):
+        df_customers = fetch_data("/customers/top")
     st.subheader("Top 10 Customers by Revenue")
     if not df_customers.empty:
         fig = px.bar(
@@ -184,6 +176,8 @@ with tab2:
 
 # ── Tab 3: Inventory ──────────────────────────────────────────────────────────
 with tab3:
+    with st.spinner("Loading inventory data…"):
+        df_inventory = fetch_data("/inventory/position")
     st.subheader("Recent Inventory Positions")
     if not df_inventory.empty:
         st.dataframe(df_inventory, use_container_width=True)
