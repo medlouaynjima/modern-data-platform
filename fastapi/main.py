@@ -7,18 +7,20 @@ from pathlib import Path
 from typing import List, Dict, Any
 from fastapi.middleware.cors import CORSMiddleware
 
+
+app = FastAPI(
+    title="Modern Data Platform API",
+    description="REST API serving Gold Delta Lake tables and ML predictions.",
+    version="2.0.0",
+)
+
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"], # Ou ["https://biz-blend-analytics.lovable.app"]
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
-)
-
-app = FastAPI(
-    title="Modern Data Platform API",
-    description="REST API serving Gold Delta Lake tables and ML predictions.",
-    version="2.0.0",
 )
 
 # ── Connection helpers ────────────────────────────────────────────────────────
